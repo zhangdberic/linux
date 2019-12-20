@@ -7,7 +7,7 @@
 3、查看镜像文件
    docker images
 4、创建Gitlab挂载目录
-   在/docker/gitlab下分别创建config,logs,data目录
+   在创建/gitlab目录，并分别创建子目录config,logs,data
 5、创建docker中的网络
    docker network create gitlab_net
 6、使用image启动Gitlab容器, 启动前确认7001 没被使用 并且添加到iptables或者firewall里面(允许外部访问)
@@ -26,5 +26,8 @@ docker run --name='gitlabs' -d \
   登入container： docker exec -it gitlab /bin/bash
   根据官方文档进行设置。编辑/etc/gitlab/gitlab.rb文件，这是Gitlab的全局配置文件
   官方文档：https://docs.gitlab.com/omnibus/settings/configuration.html
- 
+
+9.备份
+
+只需备份/gitlab目录就可以了。
 
