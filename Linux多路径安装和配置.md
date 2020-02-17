@@ -27,6 +27,10 @@ Dec 13 11:08:16 | sdf: uid = 360060e801232c500504032c500000809 (callout)
 Dec 13 11:08:16 | sdd: uid = 360060e801232c500504032c500000c0b (callout)
 ```
 
+uid就是wwid号，重复的wwid是配置了双HBA卡做了HA容错处理，其指向同一块存储块。
+
+
+
 ## 编写multipath.conf
 
 vi /etc/multipath.conf，默认没有，这个文件需要手工创建，一般情况下只需要修改文件内容的wwid项即可(修改为上面系统盘的wwid)，其它的配置不需要改变。
@@ -155,6 +159,80 @@ Disk /dev/mapper/mpathb: 2199.0 GB, 2199023255552 bytes
 Disk /dev/mapper/mpathe: 2638.8 GB, 2638827907072 bytes
 Disk /dev/mapper/mpathd: 2199.0 GB, 2199023255552 bytes
 ```
+
+## 查看WWN号
+
+cat /sys/class/fc_host/host1/port_name
+
+cat /sys/class/fc_host/host2/port_name
+
+cat /sys/class/fc_host/host3/port_name
+
+有几块HBA卡，就有几个WWN号，类似于网卡号。查看这个是方便和存储划分人员沟通。
+
+## 增加磁盘
+
+停止依赖于存储块的程序，例如：oracle数据库、web系统等。
+
+备份重要的数据。
+
+先运行如下命令，备份当前信息：
+
+sudo multipath -ll
+
+sudo multipath -v3 |grep sd.*36 # 获取所有的wwid(包括系统盘wwid)
+
+sudo fdisk -l |grep '/dev/s'
+
+sudo cat /etc/multipath/bindings
+
+sudo cat /etc/multipath/wwids
+
+sudo pvs
+
+再执行如下命令，刷新磁盘（获取新挂载的磁盘）：
+
+sudo ls -l /sys/class/scsi_host/host*
+
+~~注意：有多少个host，每个都要执行，命令如下：~~
+
+~~sudo sh -c 'sync && echo - - - > /sys/class/scsi_host/host0/scan'~~
+
+~~sudo sh -c 'sync && echo - - - > /sys/class/scsi_host/host1/scan'~~
+
+~~sudo sh -c 'sync && echo - - - > /sys/class/scsi_host/host2/scan'~~
+
+~~上面执行后，就可以发现新的磁盘了。~~
+
+使用sudo multipath -v3 |grep sd.*36命令，发现新的wwid号。
+
+重新编辑：/etc/multipath/bindings，加入新的mpathX和wwid。
+
+重新编辑：/etc/multipath/wwids，加入新的wwid。
+
+验证：
+
+sudo multipath -ll
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

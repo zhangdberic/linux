@@ -100,6 +100,8 @@ This account is currently not available.
 
 
 
+注意：其只能保证远程终端无法登陆，如果已经使用其他用户到linux系统，并使用如下命令就可以正常切换到root下，su - root -s /bin/bash，理解为：默认su - root 使用/etc/passwd的配置，因为你修改为了nologin，所以无法正常登陆，但如果你指定了/bin/bash方式登陆，则就可以正常使用/bin/bash来登陆了。
+
 
 
 ## 3.审计
