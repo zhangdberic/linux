@@ -1,3 +1,65 @@
+# 操作系统方式安装gitlabs
+
+**安装依赖库和打开http、ssh端口**
+
+sudo yum install -y curl policycoreutils-python openssh-server openssh-clients cronie
+
+sudo lokkit -s http -s ssh
+
+**安装邮件服务器，并设置开机启动**
+
+sudo yum install postfix
+
+sudo service postfix start
+
+sudo chkconfig postfix on
+
+**添加GitLab仓库到yum源,并用yum方式安装到服务器上**
+
+curl -sS https://packages.gitlab.com/install/repositories/gitlab/gitlab-ce/script.rpm.sh | sudo bash
+
+ yum install -y gitlab-ce
+
+**修改gitlab配置**
+
+vi /etc/gitlab/gitlab.rb
+
+```
+external_url 'http://39.105.202.78'   # 修改访问的ip地址，本机对外提供的ip
+nginx['listen_port'] = 3333   # 可以修改访问的端口号，注意去掉前面的#号
+
+```
+
+**重新配置**
+
+gitlab-ctl reconfigure
+
+**重新启动**
+
+gitlab-ctl restart
+
+**浏览器，访问http://39.105.202.78:3333**
+
+第一次访问，需要修改root用户的密码。
+
+修改后自动登录了，你应该先sign-out，然后在重新登录一次测试一下root登录是否正常。
+
+**使用sign-up注册用户**
+
+登录页面，就有sign-up，你可以注册用户。
+
+**禁用sign-up**
+
+使用root用户登录，然后在主界面的左上角，有一个**扳手**的图标（Admin Area），点击"Settings"，Sign-up restrictions项目，去掉Sign-up enabled前面的勾选项，然后save保持。
+
+
+
+
+
+
+
+
+
 # docker方式安装gitlabs
 
 1、搜索可用的Gitlab images

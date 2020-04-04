@@ -67,11 +67,68 @@ service network restart
 如果linux虚拟机无法ping通宿主机(win10)，有可能win10禁ping了(默认是禁止的)。
 开通ping(ICMP)：控制面板->Windows Defender防火墙->高级设置->入站规则->"文件和打印机共享(回显请求 - ICMPv4-ln)，注意是两个,两个是同样的字样，选中两个后，点击启用规则。
 
+## 2.4 增加硬盘
 
+**Hyper为虚拟机增加硬盘**
 
+选择要增加虚拟机点击”设置“，选择”SCSI控制器"，选择“硬盘控制器"，点击”添加“按键，新建，按照向导操作。
 
+添加的硬盘，命名为**虚拟机名称X.vhdx**。
 
+**linux虚拟机挂载硬盘**
 
+无效重新启动，在线挂载新硬盘。
+
+fdisk -l 可以查看到刚挂载的硬盘，例如：下面的/dev/sdb
+
+```
+磁盘 /dev/sdb：32.2 GB, 32212254720 字节，62914560 个扇区
+Units = 扇区 of 1 * 512 = 512 bytes
+扇区大小(逻辑/物理)：512 字节 / 4096 字节
+I/O 大小(最小/最佳)：4096 字节 / 4096 字节
+```
+
+**创建物理卷**
+
+pvcreate /dev/sdb
+
+**把新创建的物理卷加入卷组**
+
+vgextend centos /dev/sdb
+
+**查看卷组的大小是否有变化**
+
+vgdisplay
+
+**扩展逻辑卷**
+
+lvextend -L 46G /dev/centos/root
+
+```
+  Size of logical volume centos/root changed from 16.80 GiB (4301 extents) to 46.00 GiB (11776 extents).
+  Logical volume centos/root successfully resized.
+```
+
+**重置逻辑卷**
+
+xfs_growfs /dev/vg_bak/lv_bak
+
+**查看文件系统**
+
+df -h
+
+```
+文件系统                 容量  已用  可用 已用% 挂载点
+devtmpfs                 1.9G     0  1.9G    0% /dev
+tmpfs                    1.9G     0  1.9G    0% /dev/shm
+tmpfs                    1.9G  8.6M  1.9G    1% /run
+tmpfs                    1.9G     0  1.9G    0% /sys/fs/cgroup
+/dev/mapper/centos-root   46G   16G   31G   33% /
+/dev/sda2               1014M  141M  874M   14% /boot
+/dev/sda1                200M   12M  189M    6% /boot/efi
+tmpfs                    379M     0  379M    0% /run/user/0
+
+```
 
 
 
