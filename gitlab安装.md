@@ -25,7 +25,7 @@ curl -sS https://packages.gitlab.com/install/repositories/gitlab/gitlab-ce/scrip
 vi /etc/gitlab/gitlab.rb
 
 ```
-external_url 'http://39.105.202.78'   # 修改访问的ip地址，本机对外提供的ip
+external_url 'http://39.105.202.78:3333'   # 修改访问的ip地址，本机对外提供的ip,如果有端口一定要加上。
 nginx['listen_port'] = 3333   # 可以修改访问的端口号，注意去掉前面的#号
 
 ```
