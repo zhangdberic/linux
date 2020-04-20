@@ -84,15 +84,56 @@ location ~ ^/thumb/dfss/fss1/data/(.*)/(.*)/(.*)/([0-2])(.*)_(\d+)x(\d+)\.(jpg|p
 
 ##### nginx shell
 
-###### 使用location正则表达式变量
+###### 使用正则表达式变量
 
-```
-location ~ ^/thumb/dfss/fss1/data/(.*)/(.*)/(.*)${
-  set $day $1$2$3;
+```nginx
+location ~ ^/thumb/dfss/fss1/data/(.*)/(.*)/(.*)$ {
+  set $year $1;
+  set $month $2;
+  set $date $3;  
 }
 ```
 
-你可以根据$序号的形势，来获取location中匹配的字符，作为变量，例如：第1个括号内的内容通过$1变量引用，第2个括号内的内容通过$2变量引用，以此类推。
+正则表达式，括号部分声明了要获取的变量位置，你可以根据$序号的形式，来获取正则中括号的字符串，作为变量，例如：第1个括号内的内容通过$1变量引用，第2个括号内的内容通过$2变量引用，以此类推。
+
+括号除了有定义序号变量的作用，还有就是提高优先级，例如，或者操作(jpg|png|bmp|gif)。
+
+**注意：**
+
+1.正则表达式不但可以在location中使用，还可以在location{}块中的任何位置使用，例如if判断语句。
+
+2.序号变量$x，序号变量是上一个正则表达式的序列变量，这个必须牢记。如果再有第2个正则表达式，其会覆盖上面的正则表达式的序号变量。
+
+例如：第1个正则表达式是location后的URI匹配表达式，其可以使用4个序列变量。第2个正则表达式是if ( $filename ~ ^(.*)\.del\..*$ )，其执行后会覆盖location后的URI匹配表达式的序列变量，如果你要保留第1个location后的URI匹配表达式，则应先使用临时的变量，保存起来，例如：set $fssx $1;
+
+```nginx
+    location ~ ^/thumb/dfss/(.*)/data/.*/.*/.*/2(.*)\.(.*)_\d+x\d+\.(jpg|png|bmp|gif)$ {
+            set $fssx $1;
+            set $filename $2;
+            set $file_ext $3;
+            set $thumb_img_ext $4;
+
+            set $allow_fssx 'f';
+            if ( $fssx = 'fss1' ) {
+               set $allow_fssx 't';
+            }
+            if ( $allow_fssx != 't' ) {
+               return 405 'fssx [$1] error';
+            }
+            if ( $filename ~ ^(.*)\.del\..*$ ) {
+               return 405 'uri include error char, $1 ';
+            }
+			
+    	  # 序号变量已结被第2个if判断的正则表达式覆盖了,下面的序号变量都是空格
+          #return 200 'ok $1 file $2 ,ext $3 ,thumb ext $4 ';
+          # 使用保存的临时变量
+          #return 200 'ok $fssx file $filename ,ext $file_ext ,thumb ext $thumb_img_ext';
+}
+```
+
+
+
+一定要在代码开始的位置，尽量靠前的位置，把序号变量赋值(set)给普通变量，否则在下面序号变量可能丢失。
 
 ###### set 赋值变量
 
