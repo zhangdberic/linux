@@ -84,7 +84,7 @@ location ~ ^/thumb/dfss/fss1/data/(.*)/(.*)/(.*)/([0-2])(.*)_(\d+)x(\d+)\.(jpg|p
 
 ##### nginx shell
 
-###### 使用正则表达式变量
+###### 正则表达式变量
 
 ```nginx
 location ~ ^/thumb/dfss/fss1/data/(.*)/(.*)/(.*)$ {
@@ -96,11 +96,11 @@ location ~ ^/thumb/dfss/fss1/data/(.*)/(.*)/(.*)$ {
 
 正则表达式，括号部分声明了要获取的变量位置，你可以根据$序号的形式，来获取正则中括号的字符串，作为变量，例如：第1个括号内的内容通过$1变量引用，第2个括号内的内容通过$2变量引用，以此类推。
 
-括号除了有定义序号变量的作用，还有就是提高优先级，例如，或者操作(jpg|png|bmp|gif)。
+**括号**除了有定义序号变量的作用，还有就是提高优先级，例如，或者操作(jpg|png|bmp|gif)。
 
 **注意：**
 
-1.正则表达式不但可以在location中使用，还可以在location{}块中的任何位置使用，例如if判断语句。
+1.正则表达式不但可以在location中使用，还可以在location{}块中的任何位置使用，例如if判断语句、rewrite语句等。
 
 2.序号变量$x，序号变量是上一个正则表达式的序列变量，这个必须牢记。如果再有第2个正则表达式，其会覆盖上面的正则表达式的序号变量。
 
@@ -184,22 +184,21 @@ nginx.shell默认是不支持 or 运算符的，可以使用如下方法：
 ```nginx
             set $verify_flag 'f';
             set $size $6x$7;
-            if ($size = '400x400'){
+            if ( $size = '400x400' ) {
                set $verify_flag 't';
             }
-            if ($size = '300x300'){
+            if ( $size = '300x300' ) {
                set $verify_flag 't';
             }
-            if ($size = '200x200'){
+            if ( $size = '200x200' ) {
                set $verify_flag 't';
             }
-            if ($size = '100x100'){
+            if ( $size = '100x100' ) {
                set $verify_flag 't';
             }
-            if ($verify_flag = 'f'){
-               return 405;
+            if ( $verify_flag = 'f' ) {
+               return 405 'size [$size] error.';
             }
-
 ```
 
 ##### root、alias

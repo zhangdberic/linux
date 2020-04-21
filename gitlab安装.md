@@ -93,3 +93,60 @@ docker run --name='gitlabs' -d \
 
 只需备份/gitlab目录就可以了。
 
+
+
+# Gitlabs数据备份与恢复
+
+## 创建备份
+
+```shell
+gitlab-rake gitlab:backup:create
+```
+
+执行完备份命令后会在`/var/opt/gitlab/backups`目录下生成备份后的文件，如`1500809139_2017_07_23_gitlab_backup.tar`。1500809139是一个时间戳，从1970年1月1日0时到当前时间的秒数。这个压缩包包含Gitlab所有数据（例如：管理员、普通账户以及仓库等等）。
+
+**备份gitlab.rb**
+
+gitlab.rb文件存放在/etc/gitlab/gitlab.rb下，你在备份数据的后，也应该同步备份这个文件。
+
+**备份gitlab-secrets.json**
+
+gitlab-secrets.json存放在/etc/gitlab/gitlab-secrets.json下，你在备份数据的后，也应该同步备份这个文件。
+
+## 备份恢复
+
+本节说明如何在另一台主机上恢复数据。
+
+将备份文件拷贝到`/var/opt/gitlab/backups`下（备份和恢复的GitLab版本尽量保持一致，后文描述了版本不匹配的处理方法）。
+
+### 停止相关数据连接服务
+
+```
+gitlab-ctl stop unicorn
+gitlab-ctl stop sidekiq 
+```
+
+### 从备份恢复
+
+从指定时间戳的备份恢复（backups目录下有多个备份文件时）：
+
+```
+gitlab-rake gitlab:backup:restore BACKUP=1500809139
+```
+
+从默认备份恢复（backups目录下只有一个备份文件时）：
+
+```
+sudo gitlab-rake gitlab:backup:restore
+```
+
+### 修改默认备份目录【可选】
+
+你也可以通过修改`/etc/gitlab/gitlab.rb`来修改默认存放备份文件的目录：
+
+```
+gitlab_rails['backup_path'] = '/home/backup'
+```
+
+`/home/backup`修改为你想存放备份的目录即可, 修改完成之后使用`gitlab-ctl reconfigure`命令重载配置文件即可。
+
