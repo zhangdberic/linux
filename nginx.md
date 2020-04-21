@@ -272,7 +272,38 @@ allow允许访问的ip和ip段，deny禁止访问的ip和ip段，例如：只允
         }
 ```
 
+## 5.nginx正向代理
 
+iptables可以做到基于ip地址的正向代理，但如果目标端是域名这个可以使用nginx的正向代理，其基于stream代理实现。
+
+编辑加入:
+
+```
+ --with-stream
+```
+
+配置:
+
+```nginx
+stream {
+    upstream backend {
+       server www.dongyuit.cn:80;
+       #server www.dongyuit.cn:81;
+    }
+
+    server {
+        listen 12345;
+        resolver 8.8.8.8:53 valid=30s;
+        proxy_connect_timeout 1s;
+        proxy_timeout 3s;
+        proxy_pass backend;
+    }
+
+}
+
+```
+
+这样当你访问nginx这台机器的12345端口，就是访问www.dongyuit.cn:80。
 
 # 好文档
 
