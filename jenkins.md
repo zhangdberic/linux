@@ -12,7 +12,7 @@ docker，见docker文档。
 
 **SSH remote hosts**
 
-需要 SSH plugin 插件支撑
+需要 SSH plugin 插件支撑；
 
 用于：“构建->构建->Execute shell script on remote host using ssh"，在远程服务器执行命令。
 
@@ -26,7 +26,7 @@ Credentials 凭据，需要在凭据管理上增加访问服务器的ssh用户�
 
 pty，这个不选；
 
-serverAliveInterval 每隔多少时间(毫秒),发送一次心跳，防止ssh长时间不用关闭；
+serverAliveInterval 每隔多少时间(毫秒),发送一次心跳，防止ssh长时间不用自动关闭；
 
 timeout 连接超时时间（毫秒）；
 
@@ -56,7 +56,7 @@ Hostname 主机地址
 
 username 登录主机用户名
 
-Remote Directory 远程目录，操作的起始目录，注意：是起始目录。例如：如果这项你设置的是/software，那么如果你使用这个POS-192.168.5.78，执行命令：mkdir -p /xxx，那么在xxx目录创建在/software目录下，不是根目录下，如果你要创建的根目录下，这项应该设置为 /  ；
+Remote Directory 远程目录，操作的起始目录，注意：是起始目录。例如：如果这项设置的是/software，那么如果执行命令：mkdir -p /xxx，不会在远程服务器的根据目录下创建xxx目录，而是创建了/software/xxx。如果你要创建在根目录下，这项应该设置为 /  ；
 
 点击高级按钮
 
@@ -66,23 +66,15 @@ Passphrase / Password 输入上面username对应的密码；
 
 Port 指定ssh端口；
 
-设置后点击“Test Configuration"来测试，配置和ssh连接是否正确。
+设置后点击“Test Configuration"，测试配置和ssh连接是否正确。
 
 
 
-
-
-
-
-
-
-
-
-#### 2.1.2 全局安全配置
+#### 2.1.2 全局配置
 
 **Maven配置**
 
-因为在jenkins启动的时候已经指定了挂载maven映射，因此这里两个settings的路径都设置为：
+因为在jenkins启动(docker模式)的时候已经指定了挂载maven映射，因此这里两个settings的路径都设置为：
 
 ```
 文件系统中的settings文件
@@ -96,7 +88,7 @@ Port 指定ssh端口；
 
 点击JDK安装
 
-因为在jenkins启动的时候已经指定了挂载jdk映射，因此这里的JAVA_HOME设置为：
+因为在jenkins启动(docker模式)的时候已经指定了挂载jdk映射，因此这里的JAVA_HOME设置为：
 
 ```
 JDK 别名    JDK1.8
@@ -107,14 +99,14 @@ JAVA_HOME  /jdk
 
 点击Maven安装
 
-因为在jenkins启动的时候已经指定了挂载maven映射，因此这里的MAVEN_HOME设置为：
+因为在jenkins启动(docker模式)的时候已经指定了挂载maven映射，因此这里的MAVEN_HOME设置为：
 
 ```
 Name maven3
 MAVEN_HOME /maven
 ```
 
-以上jenkines的docker镜像安装和设置就完成了，jenkins的使用，可以见linux下的jenkins文档。
+
 
 #### 2.1.6 插件管理
 
@@ -122,15 +114,20 @@ http://192.168.5.78:10000/
 
 系统管理->插件管理->可选插件
 
-[Oracle Java SE Development Kit Installer Plugin](https://plugins.jenkins.io/jdk-tool)
+```
+Oracle Java SE Development Kit Installer Plugin
 
-[JUnit Plugin](https://plugins.jenkins.io/junit)
+JUnit Plugin
 
-[Timestamper](https://plugins.jenkins.io/timestamper)
+Timestamper
 
-[Build Timeout](https://plugins.jenkins.io/build-timeout)
+Build Timeout
 
-[Subversion Plug-in](https://plugins.jenkins.io/subversion)
+Subversion Plug-in
+
+GitHub plugin
+
+GitLab Plugin
 
 Maven Integration plugin
 
@@ -138,21 +135,20 @@ Publish Over FTP
 
 Publish Over SSH
 
-[GitHub plugin](https://plugins.jenkins.io/github)
+SSH plugin
 
-[GitLab Plugin](https://plugins.jenkins.io/gitlab-plugin)
+Role-based Authorization Strategy
 
-[SSH plugin](https://plugins.jenkins.io/ssh)
+Pipeline
 
-[Role-based Authorization Strategy](https://plugins.jenkins.io/role-strategy)
+docker-build-step
 
-[Pipeline](https://plugins.jenkins.io/workflow-aggregator)
+Credentials Plugin
 
-[docker-build-step](https://plugins.jenkins.io/docker-build-step)
+Email Extension Plugin
+```
 
-[Credentials Plugin](https://plugins.jenkins.io/credentials)
 
-[Email Extension Plugin](https://plugins.jenkins.io/email-ext)
 
 ## 3.构建
 
@@ -271,7 +267,30 @@ Exec command：传输文件到远程服务器后，在远程服务器执行的�
 
 
 
+### 5.构建和发布
+
+一般项目都会有四个环境：
+
+1.开发环境，程序员本机；
+
+2.测试环境，测试人员使用环境；
+
+3.预发布环境，客户测试或者是生产环境模拟；
+
+4.生产环境；
+
+我们开发的程序或者项目如何部署到这4个环境上?
+
+目前我的设计是这样的：
+
+开发环境：可以忽略不提；
+
+测试环境：独立部署一套jenkins，因为通常测试环境和生产环境会进行隔离，而且更分开部署jenkins更安全；
+
+预发布环境和生产环境：独立部署一套jenkins，直接从互联网的云服务器上获取源码，在本地编译，然后发布，速度更快，而且和测试环境的jenkins区分开，更可靠。生产环境的发布，必须
 
 
 
+# jenkins 时区设置
 
+https://www.cnblogs.com/jwentest/p/7270692.html
