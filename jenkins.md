@@ -294,3 +294,11 @@ Exec command：传输文件到远程服务器后，在远程服务器执行的�
 # jenkins 时区设置
 
 https://www.cnblogs.com/jwentest/p/7270692.html
+
+
+
+
+
+好文章
+
+https://www.jianshu.com/p/41f2def6ec59
