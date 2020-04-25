@@ -162,7 +162,7 @@ Email Extension Plugin
 
 ##### 3.1.2 源码管理
 
-###### 3.1.2.3 Subversion
+###### Subversion
 
 **Repository URL：**
 
@@ -237,13 +237,30 @@ Use 'svn update' as much as possible, with 'svn revert' before update 尽可能�
 
 源码库浏览器，默认（自动）；
 
+##### 3.1.3 构建触发器
+
+###### 3.1.3.3 定时构建
+
+日常表
+
+```
+TZ=Asia/Shanghai
+H 0 * * *
+```
+
+第一个TZ指定了时区，因为定时任何依赖于时间，而时间又依赖于时区；
+
+H 0 * * *，这个例子：每天的0点触发构建，为什么第1个，month(分钟)是H而不是0，这是jenkins特殊的字符，其会根据负载情况，决定是0点0分运行，还是0点x分允许，而且jenkins提倡使用H。
+
 ##### 3.1.5 构建环境
+
+###### 先删除workspace内的文件
 
 Delete workspace before build starts 构建前先删除这个项目，**生产环境建议选择**；
 
 ##### 3.1.6 构建
 
-###### 3.1.6.5 maven构建
+###### maven构建
 
 选择：调用顶层Maven目标
 
@@ -251,7 +268,9 @@ Maven版本 ：选择maven，这个是在“系统管理->全局工具配置-Mav
 
 目录：maven构建过程命令，例如：clean install -Dmaven.test.skip=true
 
-###### 3.1.7 构建后操作
+##### 3.1.7 构建后操作
+
+###### Send Build artifacts over SSH
 
 选择：Send Build artifacts over SSH
 
@@ -263,7 +282,7 @@ Remove prefix：传输过去后要去掉前置，例如：target/，传输过去
 
 Remote directory：传输到远程的目录，注意：这个依赖于Publish over SSH配置的Remote Directory起始目录。
 
-Exec command：传输文件到远程服务器后，在远程服务器执行的目录，例如：deploy.sh
+Exec command：传输文件到远程服务器后，在远程服务器执行的目录，例如：./bin/deploy.sh
 
 
 
@@ -291,9 +310,103 @@ Exec command：传输文件到远程服务器后，在远程服务器执行的�
 
 
 
-# jenkins 时区设置
+## 构建流程
 
-https://www.cnblogs.com/jwentest/p/7270692.html
+### 1.jar或者war程序包maven构建ssh发布
+
+1.1 创建任务;
+
+1.2 构建一个自由风的软件项目;
+
+1.3 Genreal，输入描述，简介明了；
+
+1.4 源码管理，参见“3.1.2 源码管理"根据代码来源配置git或subversion；
+
+1.5 构建触发器，参见"3.1.3 构建触发器"，例如要构建一个定时build的任务，则可以配置"定时构建"；
+
+1.6 构建环境，参加"3.1.5 构建环境"，例如构建前要删除workspace内的文件(获取一个干净的环境)；
+
+1.7 构建，参见"3.1.6 构建"，参见"调用顶层maven目标"；
+
+1.8 构建后操作，参见"3.17 构建后操作"，参见“Send Build artifacts over SSH"；
+
+例如：发布到tgms用户的$HOME目录下，并调用$HOME/bin/deploy.sh执行发布程序；
+
+Send Build artifacts over SSH配置如下：
+
+```
+Name:POS-192.168.5.254-TGMS
+Source files:target/ROOT.war
+Remove prefix:target/
+Remote directory:/
+Exec command:./bin/deploy.sh
+```
+
+依赖的"系统配置 -> Publish over SSH"，配置如下：
+
+```
+Name:POS-192.168.5.254-TGMS
+Remote Directory:/home/tgms  # 注意本处配置已经限定了起始目录
+```
+
+远端发布参考脚本1如下：
+
+```bash
+#!/bin/bash
+
+# 判断程序包是否存在
+warfile="$HOME/ROOT.war"
+if [ ! -f $warfile ]; then
+  echo $warfile 'does not exist.'
+  exit 0
+fi
+
+# 停止
+nginx_home=$HOME/nginx
+tomcat_home=$HOME/tomcat
+if [ -f $nginx_home/logs/nginx.pid ]; then
+   $nginx_home/sbin/nginx -s stop
+fi
+$tomcat_home/bin/shutdown.sh
+sleep 5s
+PID=$(ps -ef | grep '/home/tgms/jdk1.8/jre/bin/java' | grep -v grep | awk '{ print $2 }')
+if [ -z "$PID" ]
+then
+    echo 'Application is already stopped'
+else
+    echo 'kill' $PID
+fi
+echo 'shutdown ok.'
+
+# 清除
+rm -rf $HOME/tgms
+rm -rf $HOME/tgms_static
+echo clear ok.
+
+# 备份
+cp $HOME/ROOT.war $HOME/code_history/ROOT.war.`date +"%F-%T"`
+echo bak ROOT.war ok.
+
+# 发布
+mkdir $HOME/tgms
+cp -r $HOME/ROOT.war $HOME/tgms
+cd $HOME/tgms
+$HOME/jdk1.8/bin/jar xf ROOT.war
+rm -rf ROOT.war
+mkdir $HOME/tgms_static
+cp -r $HOME/tgms/* $HOME/tgms_static
+rm -rf $HOME/tgms_static/WEB-INF
+echo deploy ok.
+
+# 启动
+$tomcat_home/bin/startup.sh
+sleep 10s
+$nginx_home/sbin/nginx
+echo startup ok.
+
+```
+
+
 
 
 
