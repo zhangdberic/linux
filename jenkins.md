@@ -10,7 +10,7 @@ docker，见docker文档。
 
 #### 2.1.1 系统配置
 
-**SSH remote hosts**
+##### SSH remote hosts
 
 需要 SSH plugin 插件支撑；
 
@@ -32,7 +32,7 @@ timeout 连接超时时间（毫秒）；
 
 配置后，点击Check connection，测试ssh连接配置是否正确。
 
-**Publish over SSH**
+##### Publish over SSH
 
 用于："构建->构建后操作->Send build artifacts over SSH"，传输jenkins构建后的jar或者war文件到远程服务器，并在远程服务器执行一个命令。
 
@@ -68,13 +68,15 @@ Port 指定ssh端口；
 
 设置后点击“Test Configuration"，测试配置和ssh连接是否正确。
 
+##### Docker Builder
 
+Docker URL 设置 Docker server REST API URL，例如：tcp://192.168.1.250:2375/，设置后点击Test Connection按钮来测试，连接是否正确。
 
 #### 2.1.2 全局配置
 
-**Maven配置**
+##### Maven配置
 
-因为在jenkins启动(docker模式)的时候已经指定了挂载maven映射，因此这里两个settings的路径都设置为：
+因为在jenkins启动(docker模式)的时候已经把宿主的maven目录挂载到了jenkins docker的/maven目录，因此这里两个settings的路径都设置为：
 
 ```
 文件系统中的settings文件
@@ -82,35 +84,31 @@ Port 指定ssh端口；
 文件路径：/maven/conf/settings.xml
 ```
 
-这里要注意：settings.xml的<localRepository>/maven_repo</localRepository>设置为/maven_repo，因为在jenkines的docker启动的时候设置了maven本地仓库映射，-v /data/maven_repo:/maven_repo；
+注意：settings.xml的<localRepository>/maven_repo</localRepository>本地仓库设置为/maven_repo，因为在jenkins的docker启动的时候已经把宿主的maven_repo目录挂载到了jenkins docker的/maven_repo目录；
 
-**JDK**
+##### JDK
 
 点击JDK安装
 
-因为在jenkins启动(docker模式)的时候已经指定了挂载jdk映射，因此这里的JAVA_HOME设置为：
+因为在jenkins启动(docker模式)的时候已经把宿主的jdk目录挂载到了jenkins docker的/jdk目录，因此这里的JAVA_HOME设置为：
 
 ```
 JDK 别名    JDK1.8
 JAVA_HOME  /jdk
 ```
 
-**Maven**
+##### Maven
 
 点击Maven安装
 
-因为在jenkins启动(docker模式)的时候已经指定了挂载maven映射，因此这里的MAVEN_HOME设置为：
+因为在jenkins启动(docker模式)的时候已经把宿主的maven目录挂载到了jenkins docker的/maven目录，因此这里的MAVEN_HOME设置为：
 
 ```
 Name maven3
 MAVEN_HOME /maven
 ```
 
-
-
 #### 2.1.6 插件管理
-
-http://192.168.5.78:10000/
 
 系统管理->插件管理->可选插件
 
@@ -152,17 +150,17 @@ Email Extension Plugin
 
 ## 3.构建
 
-#### 3.1.构建maven项目
+### 3.1.构建maven项目
 
 构建maven项目依赖于上面的安装和配置文档(例如，依赖java_home和maven_home的设置)。
 
-##### 3.1.1 General
+#### 3.1.1 General
 
 描述，输入项目的描述信息；
 
-##### 3.1.2 源码管理
+#### 3.1.2 源码管理
 
-###### Subversion
+##### Subversion
 
 **Repository URL：**
 
@@ -237,9 +235,9 @@ Use 'svn update' as much as possible, with 'svn revert' before update 尽可能�
 
 源码库浏览器，默认（自动）；
 
-##### 3.1.3 构建触发器
+#### 3.1.3 构建触发器
 
-###### 3.1.3.3 定时构建
+##### 定时构建
 
 日常表
 
@@ -252,25 +250,71 @@ H 0 * * *
 
 H 0 * * *，这个例子：每天的0点触发构建，为什么第1个，month(分钟)是H而不是0，这是jenkins特殊的字符，其会根据负载情况，决定是0点0分运行，还是0点x分允许，而且jenkins提倡使用H。
 
-##### 3.1.5 构建环境
+#### 3.1.5 构建环境
 
-###### 先删除workspace内的文件
+##### 先删除workspace内的文件
 
 Delete workspace before build starts 构建前先删除这个项目，**生产环境建议选择**；
 
-##### 3.1.6 构建
+#### 3.1.6 构建
 
-###### maven构建
+##### maven构建
 
 选择：调用顶层Maven目标
 
 Maven版本 ：选择maven，这个是在“系统管理->全局工具配置-Maven”中安装时配置的别名。
 
-目录：maven构建过程命令，例如：clean install -Dmaven.test.skip=true
+目录：maven构建过程命令，例如：
 
-##### 3.1.7 构建后操作
+clean install -Dmaven.test.skip=true
 
-###### Send Build artifacts over SSH
+clean package -Dmaven.test.skip=true
+
+##### Execute shell script on remote host using ssh
+
+参见，“2.1.1 系统配置 SSH remote hosts"的配置。
+
+SSH site 项目可选项，来源于上面SSH remote hosts的配置。
+
+Command，输入要在远程服务器上执行的命令。
+
+##### execute shell
+
+选择：execute shell
+
+在构建后执行shell脚本(注意是jenkins的本地脚本)，例如：对构建后的jar或者war包进行操作。
+
+##### Execute Docker command
+
+选择：Execute Docker command
+
+在构建后执行对应的docker命令，这个需要先安装插件"docker-build-step"。
+
+**Create/build image命令**
+
+创建和构建docker image镜像
+
+Build context foler，指定了Dockerfile文件所在的目录，例如：$WORKSPACE/target
+
+Tag of the resulting docker image，指定创建docker image的tag，例如：dyit.com:5000/dy/test-service:1.0.2
+
+**Push image命令**
+
+发布docker image镜像到docker仓库
+
+Name of image to push(repository/image) ，指定了要发布到docker的docker image镜像，例如：dyit.com:5000/dy/test-service，注意不包括tag部分。
+
+Tag：指定了发布镜像的tag，例如：1.0.2
+
+Docker registry URL：指定了docker 仓库的发布地址，例如：http://dyit.com:2375
+
+Registry credentials：如果docker仓库访问需要用户名和密码，则需要先创建访问的凭证。
+
+如果不能正常发布，则参见"2.1.1 系统配置 -> Docker Builder"，配置"Docker server REST API URL"。
+
+#### 3.1.7 构建后操作
+
+##### Send Build artifacts over SSH
 
 选择：Send Build artifacts over SSH
 
@@ -286,7 +330,7 @@ Exec command：传输文件到远程服务器后，在远程服务器执行的�
 
 
 
-### 5.构建和发布
+## 5.构建和发布
 
 一般项目都会有四个环境：
 
@@ -312,7 +356,7 @@ Exec command：传输文件到远程服务器后，在远程服务器执行的�
 
 ## 构建流程
 
-### 1.jar或者war程序包maven构建ssh发布
+### 1.jar或war打包(maven构建->ssh发布)
 
 1.1 创建任务;
 
@@ -324,11 +368,11 @@ Exec command：传输文件到远程服务器后，在远程服务器执行的�
 
 1.5 构建触发器，参见"3.1.3 构建触发器"，例如要构建一个定时build的任务，则可以配置"定时构建"；
 
-1.6 构建环境，参加"3.1.5 构建环境"，例如构建前要删除workspace内的文件(获取一个干净的环境)；
+1.6 构建环境，参见"3.1.5 构建环境"，例如构建前要删除workspace内的文件(获取一个干净的环境)；
 
 1.7 构建，参见"3.1.6 构建"，参见"调用顶层maven目标"；
 
-1.8 构建后操作，参见"3.17 构建后操作"，参见“Send Build artifacts over SSH"；
+1.8 构建后操作，参见"3.1.7 构建后操作"，参见“Send Build artifacts over SSH"；
 
 例如：发布到tgms用户的$HOME目录下，并调用$HOME/bin/deploy.sh执行发布程序；
 
@@ -342,14 +386,14 @@ Remote directory:/
 Exec command:./bin/deploy.sh
 ```
 
-依赖的"系统配置 -> Publish over SSH"，配置如下：
+例子的"POS-192.168.5.254-TGMS"，依赖于"系统配置 -> Publish over SSH"，配置如下：
 
 ```
 Name:POS-192.168.5.254-TGMS
-Remote Directory:/home/tgms  # 注意本处配置已经限定了起始目录
+Remote Directory:/home/tgms  # 注意本处配置已经限定了以后shell操作的起始目录
 ```
 
-远端发布参考脚本1如下：
+服务器端deploy.sh脚本如下：
 
 ```bash
 #!/bin/bash
@@ -406,12 +450,82 @@ echo startup ok.
 
 ```
 
+### 2.docker打包(maven构建 -> docker仓库发布)
+
+#### 程序部分
+
+**dockerfile**
+
+创建目录"/src/main/docker"，并设置为源码包(Use a Source Folder)，在其下创建Dockerfile文件，例如：
+
+```dockerfile
+FROM base/java:1.8
+ADD test-service-1.0.1.jar app.jar
+ENTRYPOINT ["sh","-c","exec java $JAVA_OPTS -jar /app.jar $APP_ENV"]
+```
+
+FROM 指令指定了基础docker image镜像；
+
+ADD 添加target目录下test-service-1.0.1.jar到docker镜像的/app.jar。
+
+ENTRYPOINT 指定了docker启动时只需的命令行。
+
+#### jenkins部分
+
+2.1 创建任务;
+
+2.2 构建一个自由风的软件项目;
+
+2.3 Genreal，输入描述，简介明了；
+
+2.4 源码管理，参见“3.1.2 源码管理"根据代码来源配置git或subversion；
+
+2.5 构建触发器，参见"3.1.3 构建触发器"，例如要构建一个定时build的任务，则可以配置"定时构建"；
+
+2.6 构建环境，参见"3.1.5 构建环境"，例如构建前要删除workspace内的文件(获取一个干净的环境)；
+
+2.7 构建，参见"3.1.6 构建"，参见"调用顶层maven目标"；
+
+2.8 构建，参见"3.1.6 构建"，参见"execute shell"，把/src/main/docker/Dockerfile文件拷贝到工程的target目录下，例如：
+
+```bash
+cp $WORKSPACE/src/main/docker/Dockerfile $WORKSPACE/target
+```
+
+2.9 构建，参见"3.1.6 构建"，参见"Execute Docker command -> Create/build image"，构建docker image，例如：
+
+Build context foler，指定了Dockerfile文件所在的目录，例如：$WORKSPACE/target
+
+Tag of the resulting docker image，指定创建docker image的tag，例如：dyit.com:5000/dy/test-service:1.0.2
+
+2.10 构建，参见"3.1.6 构建"，参见"Execute Docker command -> Push image"，发布新构建的docker image到私有仓库，例如：
+
+Name of image to push(repository/image) ，指定了要发布到docker的docker image镜像，例如：dyit.com:5000/dy/test-service，注意不包括tag部分。
+
+Tag：指定了发布镜像的tag，例如：1.0.2
+
+Docker registry URL：指定了docker 仓库的发布地址，例如：http://dyit.com:2375
+
+Registry credentials：如果docker仓库访问需要用户名和密码，则需要先创建访问的凭证。
+
+如果不能正常发布，则参见"2.1.1 系统配置 -> Docker Builder"，配置"Docker server REST API URL"。
+
+2.11 构建，参见"3.1.6 构建"，参见"Execute shell script on remote host using ssh"，例如：
+
+```
+./bin/deploy.sh
+```
+
+docker服务器端deploy.sh脚本如下：
+
+```bash
+#!/bin/bash
+# 从docker仓库中拉去新的镜像
+
+# 停止并删除docker镜像
+
+# 启动新的docker镜像
 
 
+```
 
-
-
-
-好文章
-
-https://www.jianshu.com/p/41f2def6ec59
