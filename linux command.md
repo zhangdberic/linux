@@ -10,6 +10,12 @@ egrep -v '^$|#' /etc/zabbix/zabbix_agentd.conf
 
 ## 网络
 
+### 查看所有的监听端口
+
+```bash
+netstat -tuln
+```
+
 ### 查看tcp连接
 
 ```bash
@@ -82,5 +88,37 @@ for file in `ls`
 do
   jar xf $file
 done
+```
+
+## 服务
+
+查看所有的服务
+
+```shell
+systemctl list-unit-files
+```
+
+启动服务
+
+```
+systemctl start xxxx
+```
+
+停止服务
+
+```
+systemctl stop xxxx
+```
+
+重启服务
+
+```
+systemctl restart xxxx
+```
+
+开机启动
+
+```
+systemctl enable xxxx
 ```
 
