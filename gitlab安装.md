@@ -52,7 +52,9 @@ gitlab-ctl restart
 
 使用root用户登录，然后在主界面的左上角，有一个**扳手**的图标（Admin Area），点击"Settings"，Sign-up restrictions项目，去掉Sign-up enabled前面的勾选项，然后save保持。
 
+**创建用户**
 
+有一个**扳手**的图标（Admin Area），点击"Overview->Users"。
 
 
 
