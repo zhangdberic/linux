@@ -72,7 +72,7 @@ Port 指定ssh端口；
 
 Docker URL 设置 Docker server REST API URL，例如：tcp://192.168.1.250:2375/，设置后点击Test Connection按钮来测试，连接是否正确。
 
-#### 2.1.2 全局配置
+#### 2.1.2 全局工具配置(Global Tool Configuration)
 
 ##### Maven配置
 
@@ -85,6 +85,25 @@ Docker URL 设置 Docker server REST API URL，例如：tcp://192.168.1.250:2375
 ```
 
 注意：settings.xml的<localRepository>/maven_repo</localRepository>本地仓库设置为/maven_repo，因为在jenkins的docker启动的时候已经把宿主的maven_repo目录挂载到了jenkins docker的/maven_repo目录；
+
+如果你**代理访问**，你还是需要修改/maven/conf/settings.xml，设置proxy：
+
+```xml
+  <proxies>
+    <proxy>
+      <id>optional</id>
+      <active>true</active>
+      <protocol>http</protocol>
+      <username>user</username>
+      <password>password</password>
+      <host>proxy-ip</host>
+      <port>proxy-port</port>
+      <nonProxyHosts>localhost|127.0.0.1|10.60.*.*|192.168.*.*|dockerdongyuit.cn</nonProxyHosts>
+    </proxy>
+  </proxies>
+```
+
+
 
 ##### JDK
 
@@ -109,6 +128,61 @@ MAVEN_HOME /maven
 ```
 
 #### 2.1.6 插件管理
+
+**代理**
+
+如果你的jenkins处于内网环境，需要通过代理获取插件，则需要设置代理。
+
+注意：目前测试jenkins的代理只支持http，不支持https。因此你在设置插件源的时候，必须是http的地址。
+
+再有，如果你docker启动的jenkins，则应使用--network host网络模式启动，否则默认的网络模式，代理也无法被访问。
+
+Manage Jenkins -> Manage Plugins - > Advanced
+
+no Proxy Host设置为：
+
+```
+localhost|127.0.0.1|10.60.*.*|192.168.*.*|dockerdongyuit.cn
+```
+
+Avanced..按钮，测试代理设置和插件源是否可以正常访问。
+
+Test Url设置：
+
+```
+http://mirrors.tuna.tsinghua.edu.cn/jenkins/updates/update-center.json
+```
+
+点击validate proxy按钮测试。成功返回success。**注意：这里插件源地址必须http不能是https。**
+
+
+
+**修改插件源索引文件地址**
+
+默认的插件源更新地址是国外的官网，我们需要修改为国内的镜像地址，而且还必须是http源地址，例如：
+
+```
+http://mirrors.tuna.tsinghua.edu.cn/jenkins/updates/update-center.json
+```
+
+设置后点击submit，如果是第一次设置后，可以点击后面的check now按钮。
+
+**注意：每点击一次check now按钮，都会下载新的插件源索引文件到本地并覆盖default.json文件。**
+
+**修改插件源索引文件内插件URL地址**
+
+即使你的索引文件是国内镜像源，但其内插件的URL地址还是国外地址，那也无法正常安装插件。下面的语句，修改到国内的镜像源(还必须是http)。
+
+```bash
+cd /home/docker/jenkins/jenkins_home/updates
+cp default.json default.json.bak
+sed -i 's/http:\/\/www.google.com/https:\/\/www.baidu.com/g' default.json
+sed -i 's/http:\/\/updates.jenkins-ci.org\/download/http:\/\/mirrors.tuna.tsinghua.edu.cn\/jenkins/g' default.json
+```
+
+注意：你每次更新完插件索引文件(点击 check now按钮)都执行上面的操作。
+
+
 
 系统管理->插件管理->可选插件
 
