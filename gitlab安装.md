@@ -4,15 +4,13 @@
 
 sudo yum install -y curl policycoreutils-python openssh-server openssh-clients cronie
 
-sudo lokkit -s http -s ssh
-
 **安装邮件服务器，并设置开机启动**
 
-sudo yum install postfix
+yum install -y postfix
 
-sudo service postfix start
+systemctl start postfix 
 
-sudo chkconfig postfix on
+systemctl enable postfix.service
 
 **添加GitLab仓库到yum源,并用yum方式安装到服务器上**
 
@@ -27,7 +25,6 @@ vi /etc/gitlab/gitlab.rb
 ```
 external_url 'http://39.105.202.78:3333'   # 修改访问的ip地址，本机对外提供的ip,如果有端口一定要加上。
 nginx['listen_port'] = 3333   # 可以修改访问的端口号，注意去掉前面的#号
-
 ```
 
 **重新配置**
@@ -55,10 +52,6 @@ gitlab-ctl restart
 **创建用户**
 
 有一个**扳手**的图标（Admin Area），点击"Overview->Users"。
-
-
-
-
 
 
 

@@ -2,7 +2,73 @@
 
 ## 1.安装和配置
 
-docker，见docker文档。
+useradd jenkins
+su - jenkins
+
+参照"tomcat文档"，安装和配置tomcat。
+
+下载最新稳定版的jenkins.war
+
+wget http://mirrors.jenkins.io/war-stable/latest/jenkins.war
+
+把jenkins.war放在tomcat的webapps目录下
+
+注意：server.xml配置的unpackWARs="true"，否则无法自动解压jenkins.war文件。
+
+启动tomcat
+
+### 隐藏的.jenkins文件
+
+注意这个带点的jenkins目录[.jenkins]，这里存放jenkins的数据文件。
+
+/home/jenkins/.jenkins
+
+### 初始化
+
+http://192.168.1.250:8080/jenkins
+
+按照界面上的提示，查看这个文件，得到初始化密码
+
+不选择插件
+
+创建用户
+
+**安装插件**
+
+Manage Jenkins -> Manage Plugins -> Advanced -> Update Site 
+
+修改 URL（国内的镜像源）：
+
+```
+http://mirrors.tuna.tsinghua.edu.cn/jenkins/updates/update-center.json
+```
+
+点击 Check now 按钮，下载update-center.json文件。
+
+**修改插件源索引文件地址**
+
+**注意：每点击一次check now按钮，都会下载新的插件源索引文件到本地并覆盖default.json文件。**
+
+**修改插件源索引文件内插件URL地址**
+
+即使你的索引文件是国内镜像源，但其内插件的URL地址还是国外地址，那也无法正常安装插件。下面的语句，修改到国内的镜像源(还必须是http)。
+
+```bash
+cd /home/jenkins/.jenkins/updates/
+cp default.json default.json.bak
+sed -i 's/http:\/\/www.google.com/https:\/\/www.baidu.com/g' default.json
+sed -i 's/http:\/\/updates.jenkins-ci.org\/download/http:\/\/mirrors.tuna.tsinghua.edu.cn\/jenkins/g' default.json
+```
+
+注意：你每次更新完插件索引文件(点击 check now按钮)都要执行上面的操作。
+
+### jenkins命令
+
+重启
+
+http://192.168.1.250:8080/jenkins/restart
+
+
 
 ## 2.设置
 
@@ -214,8 +280,6 @@ Role-based Authorization Strategy
 Pipeline
 
 docker-build-step
-
-Credentials Plugin
 
 Email Extension Plugin
 ```

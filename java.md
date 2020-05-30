@@ -5,10 +5,10 @@
 ### 系统级别有效
 
 ```shell
-tar -zxvf jdk-8u192-linux-x64.tar.gz
+tar -zxvf jdk-8u212-linux-x64.tar.gz
 rm -rf /usr/local/jdk
 rm -rf /usr/local/jre
-mv jdk1.8.0_181 /usr/local/jdk
+mv jdk1.8.0_212 /usr/local/jdk
 rm -rf /usr/bin/java
 rm -rf /usr/bin/javac
 ln -s /usr/local/jdk/bin/java /usr/bin/java
@@ -18,7 +18,7 @@ ln -s /usr/local/jdk/jre /usr/local/jre
 
 设置环境变量
 
-***\*vi /etc/profile.d/my_profile.sh 添加如下内容\****
+vi /etc/profile.d/my_profile.sh 添加如下内容
 
 ```shell
 # ======= java environment =======
