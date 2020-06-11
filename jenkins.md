@@ -814,8 +814,10 @@ fi
 echo 'shutdown ok.'
 
 # 备份
-mv $deploy_filepath $HOME/code_history/$package_filename.`date +"%F-%T"`
-echo 'backup ok.'
+if [ -f $deploy_filepath ]; then
+  mv $deploy_filepath $HOME/code_history/$package_filename.`date +"%F-%T"`
+  echo 'backup ok.'
+fi
 
 # 清理
 rm -rf $deploy_filepath
