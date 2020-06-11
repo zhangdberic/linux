@@ -2,17 +2,158 @@
 
 ## 1.nginx安装
 
-### 1.1 nginx docker方式安装
+### 1.1 nginx安装
 
-nginx docker方式安装和配置，见“docker.md"文档。
+useradd nginx
 
-### 1.2 nginx 编译安装
+su - nginx
 
+wget http://nginx.org/download/nginx-1.18.0.tar.gz
 
+wget https://www.openssl.org/source/openssl-1.1.1g.tar.gz
+
+tar xvf nginx-1.18.0.tar.gz
+
+tar xvf openssl-1.1.1g.tar.gz
+
+cd nginx-1.18.0
+
+./configure --prefix=/home/nginx/nginx  --user=nginx --group=nginx --with-http_ssl_module --with-openssl=/home/nginx/openssl-1.1.1g/
+
+make -j4
+
+make install
+
+### 1.2 80端口授权
+
+su - root
+
+chown root /home/nginx/nginx/sbin/nginx
+
+chmod u+s /home/nginx/nginx/sbin/nginx
+
+firewall-cmd --permanent --add-port=80/tcp
+
+firewall-cmd --reload
+
+su - nginx
+
+~/nginx/sbin/nginx -t
 
 ## 2.nginx.conf
 
-**下面的配置说明层次结构同nginx.conf配置文件内容层次：**
+### 常用的nginx.conf配置
+
+cp ~/nginx/conf/nginx.conf ~/nginx/conf/nginx.conf.bak
+
+touch /home/nginx/nginx/conf/allowip.conf; 
+
+touch /home/nginx/nginx/conf/denyip.conf; 
+
+/bin/vi ~/nginx/conf/nginx.conf
+
+```nginx
+user nginx nginx;
+worker_processes  2;
+error_log  logs/error.log  crit;
+worker_rlimit_nofile 60000;
+events {
+    use  epoll;
+    worker_connections  60000;
+}
+http {
+    include       mime.types;
+    default_type  application/octet-stream;
+
+    log_format main '{"req_user_addr":"$remote_addr"'
+    ',"req_user_real_addr":"$http_x_forwarded_for"'
+    ',"req_time":"$time_local"'
+    ',"req_scheme":"$scheme"'
+    ',"req_protocol":"$server_protocol"'
+    ',"req_method":"$request_method"'
+    ',"req_url":"$request_uri"'
+    ',"req_length":"$request_length"'
+    ',"req_content_length":"$content_length"'
+    ',"req_content_type":"$content_type"'
+    ',"req_user_agent":"$http_user_agent"'
+    ',"req_referer":"$http_referer"'
+    ',"req_connection":"$http_connection"'
+    ',"req_worker_pid":"$pid"'
+    ',"req_tcp_id":"$connection"'
+    ',"req_tcp_num":"$connection_requests"'
+    ',"resp_status":"$status"'
+    ',"resp_bytes":"$bytes_sent"'
+    ',"resp_content_length":"$sent_http_content_length"'
+    ',"resp_content_type":"$sent_http_content_type"'
+    ',"resp_time":"$request_time"'
+    ',"upstream_addr":"$upstream_addr"'
+    ',"upstream_status":"$upstream_status"'
+    ',"upstream_resp_time":"$upstream_response_time"'
+    ',"upstream_resp_length":"$upstream_response_length"'
+    '}';
+
+    access_log  logs/access.log  main  buffer=8k;
+
+    sendfile        on;
+    server_tokens off;
+
+    keepalive_timeout  5 5;
+    client_header_timeout 5s;
+    client_body_timeout 10s;
+    send_timeout 10s;
+
+    client_body_buffer_size 16K;
+    client_max_body_size 16k;
+    client_body_temp_path /home/nginx/nginx/client_body_temp 1 2;
+
+   
+    server {
+        listen       80;
+        server_name	location;
+        charset utf-8;
+
+        # 静态网页		
+        location / {
+            root   html;
+            index  index.html index.htm;
+        }
+        error_page   500 502 503 504  /50x.html;
+        location = /50x.html {
+            root   html;
+        }
+        # 反向代理     
+        location /services {
+             proxy_pass http://services;
+             proxy_redirect off;
+             proxy_set_header Host $host;
+             proxy_set_header X-Real-IP $remote_addr;
+             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+             proxy_http_version 1.1;
+             proxy_set_header Connection "";
+             client_body_buffer_size 128k;
+             client_max_body_size 5m;
+             proxy_connect_timeout 60s;
+             proxy_send_timeout 60s;
+             proxy_read_timeout 60s;
+        }
+    } 
+    
+    upstream services {
+        server 127.0.0.1:8080;
+        keepalive 50;
+    }
+
+}
+
+```
+
+**验证配置**
+
+~/nginx/sbin/nginx -t
+
+**启动nginx**
+
+~/nginx/sbin/nginx
 
 ### server
 
@@ -21,7 +162,8 @@ nginx docker方式安装和配置，见“docker.md"文档。
     listen       80;
 ```
 ```nginx
-    # 服务器名,这里如果是localhost,则监听的地址为0.0.0.0，如果配置指定的ip，则监听是特定的ip地址。
+	# 服务名
+    # nginx会取出请求头host与nginx.conf中每个server的server_name进行匹配(支持正则表达式匹配,例如：*.lnyg.net)，以此决定到底由哪一个server块来处理这个请求，如果没有匹配的上，默认的server为第一个server。
     server_name  localhost;
 ```
 ```nginx
@@ -29,33 +171,39 @@ nginx docker方式安装和配置，见“docker.md"文档。
 	charset utf-8;
 ```
 
-
-
 #### location
 
-location 4种模式：
-
-```nginx
-    # location 第1种，URI前置匹配,如下：/abc、/abc?p1、/abc/xx/、/abcde 会被匹配到.
-    location /abc {
-    }
-```
-```nginx
-    # location 第2种，URI精确匹配，如下：/abc、/abc?p1 会被匹配到.
-    location = /abc {
-    }
-```
-```nginx
-    # location 第3种，正则表达式区分大小写，如下：/abc、/abc?p1=x 会被匹配到，/ABC不会。
-    location ~ ^/abc$ {
-    }
-```
-```nginx
-    # location 第4种，正则表达式不区分大小写，如下:/abc、/abc?p1=x、/ABC 会被匹配到。
-    location ~* ^/abc$ {
-    }
-```
 ##### 正则表达式匹配
+
+```
+~ 区分大小写匹配
+
+~* 不区分大小写匹配
+
+!~和!~*分别为区分大小写不匹配及不区分大小写不匹配
+
+^ 以什么开头的匹配
+
+$ 以什么结尾的匹配
+
+转义字符。可以转. * ?等
+
+* 代表任意字符
+```
+
+**文件和目录匹配**
+
+```
+-f和!-f用来判断是否存在文件
+
+-d和!-d用来判断是否存在目录
+
+-e和!-e用来判断是否存在文件或目录
+
+-x和!-x用来判断文件是否可执行
+```
+
+##### 例子
 
 举一个复杂的例子，来看看：
 
@@ -157,7 +305,24 @@ if ($purview = '2') {
 }
 ```
 
+###### if判断相等或不等
+
+```
+=:等值比较;
+~：与指定正则表达式模式匹配时返回“真”，判断匹配与否时区分字符大小写；
+~*：与指定正则表达式模式匹配时返回“真”，判断匹配与否时不区分字符大小写；
+!~：与指定正则表达式模式不匹配时返回“真”，判断匹配与否时区分字符大小写；
+!~*：与指定正则表达式模式不匹配时返回“真”，判断匹配与否时不区分字符大小写；
+```
+
 ###### if 判断文件是否存和不存在
+
+```
+-f, !-f：判断指定的路径是否为存在且为文件；
+-d, !-d：判断指定的路径是否为存在且为目录；
+-e, !-e：判断指定的路径是否存在，文件或目录均可；
+-x, !-x：判断指定路径的文件是否存在且可执行；
+```
 
 判断文件存在
 
@@ -177,7 +342,19 @@ if ( !-f $thumb_image_path ){
 
 ###### if or 判断
 
-nginx.shell默认是不支持 or 运算符的，可以使用如下方法：
+```nginx
+if ($remote_addr = "(59.197.168.224|59.197.168.225)") {
+    set $allow_access 't'
+}
+```
+
+```nginx
+if ($http_host !~ "(app.lnyg.net|service.lnyg.net)") {
+    return 403;
+}
+```
+
+如下是更笨的方法：
 
 下面的例子：判断$size变量必须是400x400、300x300、200x200、100x100其中之一。
 
@@ -271,6 +448,67 @@ allow允许访问的ip和ip段，deny禁止访问的ip和ip段，例如：只允
         }
 ```
 
+## 3.nginx脚本
+
+### 日志每天切换
+
+vi /home/nginx/nginx/sbin/cut-log.sh
+
+```bash
+#!/bin/bash
+## 零点执行该脚本
+## Nginx 日志文件所在的目录
+LOGS_PATH=/home/nginx/nginx/logs
+## 获取昨天的 yyyy-MM-dd
+YESTERDAY=$(date -d "yesterday" +%Y-%m-%d)
+## 移动文件
+mv ${LOGS_PATH}/access.log ${LOGS_PATH}/access_${YESTERDAY}.log
+## 向 Nginx 主进程发送 USR1 信号。USR1 信号是重新打开日志文件
+kill -USR1 $(cat /home/nginx/nginx/logs/nginx.pid)
+```
+
+crontab -e
+
+```
+0 1 * * * /home/nginx/nginx/sbin/cut-log.sh
+```
+
+## 4.安全加固
+
+### nginx.conf
+
+```nginx
+	server {
+
+       # ip访问规则,规则越靠前优先级别越高(只有allow ${ip};和deny all;两个成对出现才有意义)	    
+       allow 10.60.9.0/24;
+       deny all;
+
+        # 限制域名访问,多个域名用空格分隔
+        server_name  www.domain.com auth2.domain.com;
+		# 请求头user_agent以下值拒绝
+		if ($http_user_agent ~* "python|perl|ruby|curl|bash|echo|uname|base64|decode|md5sum|select|concat|httprequest|nmap|scan|spider" ) {
+            return 403;
+        }
+		
+		# 请求头host(指定范围)否则拒绝
+		if ($http_host !~ "(www.domain.com|auth2.domain.com)") {
+            return 403;
+        }
+		
+		# 如下url请求拒绝
+        location /(admin|phpadmin|status)  { deny all; }
+
+        #拒绝所有以以下结尾的请求
+        location ~* \.(php|asp|ASP|aspx|hp|ashx|zip|rar|gz|sql|tgz|dat|txt|mdb|properties|log|class)$ {
+            deny all;
+        }
+	}
+
+```
+
+
+
 ## 5.nginx正向代理
 
 iptables可以做到基于ip地址的正向代理，但如果目标端是域名这个可以使用nginx的正向代理，其基于stream代理实现。
@@ -303,6 +541,14 @@ stream {
 ```
 
 这样当你访问nginx这台机器的12345端口，就是访问www.dongyuit.cn:80。
+
+## 7.FAQ
+
+允许nginx命令卡住不动
+
+反向代理配置错误，检查nginx.conf的反向代理配置，重点查看proxy_pass和upstream的配置是否正确。
+
+
 
 # 好文档
 

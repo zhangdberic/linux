@@ -6,8 +6,6 @@
 
 ```bash
 #!/bin/bash
-
-
 ```
 
 下面的空行很有必要。
@@ -22,8 +20,6 @@ $HOME 当前用户所在的家目录，例如：
 nginx_home=$HOME/nginx
 ```
 
-
-
 #### 自定义变量
 
 ```bash
@@ -33,6 +29,16 @@ nginx_home=$HOME/nginx
 warfile="$HOME/ROOT.war"
 echo $warfile 'does not exist.'
 ```
+
+#### 变量使用
+
+```bash
+app_name="dy-config"
+echo $app_name
+echo ${app_name}_nohup.log
+```
+
+注意：如果变量在字符串中使用，最好使用${variable}。
 
 ### 显示输出
 
@@ -73,6 +79,24 @@ if [ ! -f $warfile ]; then
 fi
 ```
 
+### 判断字符串为空
+
+```bash
+if [ -z "$pid" ]
+then
+  echo 'empty'
+fi
+```
+
+### 判断字符串不为空
+
+```bash
+if [ -n "$pid" ]
+then
+  echo 'not empty'
+fi
+```
+
 ### 退出
 
 ```bash
@@ -85,22 +109,39 @@ exit 0
 sleep 5s
 ```
 
+### 获取某个进程的pid
+
+```shell
+ps aux|grep 'java -jar dy-config-1.0.1.jar'|grep -v "grep"|awk '{print $2}'
+```
+
+第1个grep后的字符应该是进程唯一标识，第二个grep -v "grep"很重要，其起到去掉pts进程的作用，你可以单独执行以下：ps aux|grep 'java -jar dy-config-1.0.1.jar'，看看返回几行。
+
 ### kill某个进程
 
 ```bash
-#!/bin/bash
-
-PID=$(ps -ef | grep '/home/tgms/jdk1.8/jre/bin/java' | grep -v grep | awk '{ print $2 }')
-if [ -z "$PID" ]
+pid=$(ps aux|grep 'java -jar dy-config-1.0.1.jar'|grep -v "grep"|awk '{print $2}')
+if [ -n "$pid" ]
 then
-    echo 'Application is already stopped'
-else
-    echo 'kill' $PID
+    kill -9 $pid
+    echo 'kill -9' $pid
 fi
-
+echo 'shutdown ok.'
 ```
 
-grep 后为这个进程信息的唯一标识，也就是查找进程的条件，这个必须唯一，你可以通过先执行：ps -ef | grep 'xxx'，看返回的行数，必须是1行。
+注意：你如果把上面的shell定义为一个sh文件，这个sh文件名一定不要和grep 'xxxx'内的字符匹配上，否则会出现多个pid，因为如果你执行这个sh，这个sh的进程名就是sh文件名。例如：grep 'dy-config'，而你的sh文件名为dy-config-shutdown.sh，那么会出现上面的问题。对于java进程可以使用如下策略，用java字样+程序标识组合为唯一标识，这个策略更好，例如：
+
+```bash
+pid=$(ps aux|grep 'java'|grep 'dy-config'|grep -v "grep"|awk '{print $2}')
+if [ -n "$pid" ]
+then
+    kill -9 $pid
+    echo 'kill -9' $pid
+fi
+echo 'shutdown ok.'
+```
+
+
 
 ### 判断nginx进程是否启动
 

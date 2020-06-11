@@ -29,6 +29,8 @@ http://192.168.1.250:8080/jenkins
 
 按照界面上的提示，查看这个文件，得到初始化密码
 
+ cat /home/jenkins/.jenkins/secrets/initialAdminPassword
+
 不选择插件
 
 创建用户
@@ -62,9 +64,7 @@ sed -i 's/http:\/\/updates.jenkins-ci.org\/download/http:\/\/mirrors.tuna.tsingh
 
 注意：你每次更新完插件索引文件(点击 check now按钮)都要执行上面的操作。
 
-### jenkins命令
-
-重启
+**jenkins重启一次**
 
 http://192.168.1.250:8080/jenkins/restart
 
@@ -74,7 +74,7 @@ http://192.168.1.250:8080/jenkins/restart
 
 ### 2.1 系统管理
 
-#### 2.1.1 系统配置
+#### 2.1.1 系统配置(Configure System)
 
 ##### SSH remote hosts
 
@@ -114,6 +114,8 @@ key 粘贴key，和上面的Path to key区别是，Path to key证书存放在文
 
 **密码访问**
 
+​     **点击"Add"按钮**
+
 SSH Servers 
 
 name 起个名字，例如：POS-192.168.5.78
@@ -124,7 +126,7 @@ username 登录主机用户名
 
 Remote Directory 远程目录，操作的起始目录，注意：是起始目录。例如：如果这项设置的是/software，那么如果执行命令：mkdir -p /xxx，不会在远程服务器的根据目录下创建xxx目录，而是创建了/software/xxx。如果你要创建在根目录下，这项应该设置为 /  ；
 
-点击高级按钮
+​     **点击高级按钮**
 
 选择使用“Use password authentication, or use a different key"，使用密码认证；
 
@@ -134,23 +136,157 @@ Port 指定ssh端口；
 
 设置后点击“Test Configuration"，测试配置和ssh连接是否正确。
 
+报错处理：
+
+```
+jenkins.plugins.publish_over.BapPublisherException: Failed to connect and initialize SSH connection. Message: [Failed to connect SFTP channel. Message [java.io.IOException: inputstream is closed]]
+```
+
+ssh连接服务器端的/etc/ssh/sshd_config配置有错误，修改如下，必须保证sftp-server文件存在：
+
+```
+# override default of no subsystems
+Subsystem   sftp    /usr/libexec/sftp-server
+```
+
+报错处理：
+
+```
+jenkins.plugins.publish_over.BapPublisherException: Failed to connect and initialize SSH connection. Message: [Failed to connect session for config [POS_10.60.32.198_SPRINGCLOUD]. Message [Auth fail]]
+```
+
+没有在ssh的配置文件中加入允许这个用户访问配置。
+
+```
+allowUser xxxx
+```
+
+
+
 ##### Docker Builder
 
-Docker URL 设置 Docker server REST API URL，例如：tcp://192.168.1.250:2375/，设置后点击Test Connection按钮来测试，连接是否正确。
+Docker URL 设置 Docker server REST API URL，例如：tcp://192.168.1.250:2375/，设置后点击Test Connection按钮来测试，连接是否正确，连接成功提示：Connected to tcp://192.168.1.250:2375
 
 #### 2.1.2 全局工具配置(Global Tool Configuration)
 
-##### Maven配置
+**Maven安装**
 
-因为在jenkins启动(docker模式)的时候已经把宿主的maven目录挂载到了jenkins docker的/maven目录，因此这里两个settings的路径都设置为：
+su - jenkins
+
+cd ./soft
+
+ wget https://mirrors.tuna.tsinghua.edu.cn/apache/maven/maven-3/3.6.3/binaries/apache-maven-3.6.3-bin.tar.gz
+
+tar xvf apache-maven-3.6.3-bin.tar.gz
+
+mv apache-maven-3.6.3 ~/maven
+
+cp ~/maven/conf/settings.xml ~/maven/conf/settings.xml.bak
+
+mkdir -p home/jenkins/maven_repo   # 本地仓库目录
+
+vi ~/maven/conf/settings.xml 
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd">
+  <localRepository>/home/jenkins/maven_repo</localRepository>
+
+  <pluginGroups>
+  </pluginGroups>
+
+  <proxies>
+    <proxy>
+      <id>my-proxy</id>
+      <active>true</active>
+      <protocol>http</protocol>
+      <host>10.60.32.xxx</host>
+      <port>11001</port>
+      <username>user</username>
+      <password>name</password>
+   </proxy>
+  </proxies>
+
+
+  <servers>
+        <server>
+                <id>releases</id>
+                <username>zhangdb</username>
+                <password>xxxxxxx</password>
+        </server>
+        <server>
+                <id>snapshots</id>
+                <username>zhangdb</username>
+                <password>xxxxxxx</password>
+        </server>
+  </servers>
+
+  <mirrors>
+        <mirror>
+                <id>releases</id>
+                <mirrorOf>*</mirrorOf>
+                <url>http://maven.dongyuit.cn:8081/nexus/content/groups/public/</url>
+        </mirror>
+  </mirrors>
+
+  <profiles>
+
+        <profile>
+                <id>nexus</id>
+                <repositories>
+                        <repository>
+                                <id>central</id>
+                                <url>http://central</url>
+                                <releases>
+                                        <enabled>true</enabled>
+                                </releases>
+                                <snapshots>
+                                        <enabled>true</enabled>
+                                </snapshots>
+                        </repository>
+                </repositories>
+                <pluginRepositories>
+                        <pluginRepository>
+                                <id>central</id>
+                                <url>http://central</url>
+                                <releases>
+                                        <enabled>true</enabled>
+                                </releases>
+                                <snapshots>
+                                        <enabled>true</enabled>
+                                </snapshots>
+                        </pluginRepository>
+                </pluginRepositories>
+        </profile>
+
+  </profiles>
+
+
+  <activeProfiles>
+    <activeProfile>nexus</activeProfile>
+  </activeProfiles>
+
+
+</settings>
 
 ```
-文件系统中的settings文件
 
-文件路径：/maven/conf/settings.xml
+
+
+##### Maven配置(Maven Configuration)
+
+选择settings file in filesystem
+
+选择Global settings file in filesystem
+
+两个settings的路径都设置为：
+
 ```
-
-注意：settings.xml的<localRepository>/maven_repo</localRepository>本地仓库设置为/maven_repo，因为在jenkins的docker启动的时候已经把宿主的maven_repo目录挂载到了jenkins docker的/maven_repo目录；
+File path：/home/jenkins/maven/conf/settings.xml
+```
 
 如果你**代理访问**，你还是需要修改/maven/conf/settings.xml，设置proxy：
 
@@ -163,8 +299,7 @@ Docker URL 设置 Docker server REST API URL，例如：tcp://192.168.1.250:2375
       <username>user</username>
       <password>password</password>
       <host>proxy-ip</host>
-      <port>proxy-port</port>
-      <nonProxyHosts>localhost|127.0.0.1|10.60.*.*|192.168.*.*|dockerdongyuit.cn</nonProxyHosts>
+      <port>proxy-port</port>      <nonProxyHosts>localhost|127.0.0.1|10.60.*.*|192.168.*.*|dockerdongyuit.cn</nonProxyHosts>
     </proxy>
   </proxies>
 ```
@@ -186,11 +321,9 @@ JAVA_HOME  /jdk
 
 点击Maven安装
 
-因为在jenkins启动(docker模式)的时候已经把宿主的maven目录挂载到了jenkins docker的/maven目录，因此这里的MAVEN_HOME设置为：
-
 ```
 Name maven3
-MAVEN_HOME /maven
+MAVEN_HOME /home/jenkins/maven/
 ```
 
 #### 2.1.6 插件管理
@@ -220,8 +353,6 @@ http://mirrors.tuna.tsinghua.edu.cn/jenkins/updates/update-center.json
 ```
 
 点击validate proxy按钮测试。成功返回success。**注意：这里插件源地址必须http不能是https。**
-
-
 
 **修改插件源索引文件地址**
 
@@ -284,6 +415,10 @@ docker-build-step
 Email Extension Plugin
 ```
 
+如果插件安装失败，应该使用http请求的方式来重新启动jenkins，例如：
+
+http://192.168.1.2/jenkins/restart
+
 
 
 ## 3.构建
@@ -314,7 +449,13 @@ svn://svn.xxx.cn:9999/zframework/sgw
 
 **Local module directory：**
 
-理解为项目目录，这里不用特殊设置，默认的即可，其会在/var/jenkins_home/workspace目录下自动创建一个"项目名称-build"的目录，例如：sgw项目，其会自动创建/var/jenkins_home/workspace/sgw-build目录；
+分为如下几种情况：
+
+[.]点符合(默认)：把指定的svn url下内容检出到**根目录**，把指定的svn url，例如：checkout后在workspace目录下创建src目录、pom.xml文件。
+
+如果是空白：把指定的svn url下内容检出到**svn url最后路径名,命名的目录下**，例如：checkout后在workspace的sgw目录下。
+
+指定目录：把指定的svn url下内容检出到**指定目录下**，例如，指定为sss：checkout后在workspace的sss目录下。
 
 **Repository depth：**
 
@@ -373,7 +514,7 @@ Use 'svn update' as much as possible, with 'svn revert' before update 尽可能�
 
 源码库浏览器，默认（自动）；
 
-#### 3.1.3 构建触发器
+#### 3.1.3 构建触发器(Build Triggers)
 
 ##### 定时构建
 
@@ -388,13 +529,13 @@ H 0 * * *
 
 H 0 * * *，这个例子：每天的0点触发构建，为什么第1个，month(分钟)是H而不是0，这是jenkins特殊的字符，其会根据负载情况，决定是0点0分运行，还是0点x分允许，而且jenkins提倡使用H。
 
-#### 3.1.5 构建环境
+#### 3.1.5 构建环境(Build Environment)
 
 ##### 先删除workspace内的文件
 
 Delete workspace before build starts 构建前先删除这个项目，**生产环境建议选择**；
 
-#### 3.1.6 构建
+#### 3.1.6 构建()
 
 ##### maven构建
 
@@ -403,8 +544,6 @@ Delete workspace before build starts 构建前先删除这个项目，**生产�
 Maven版本 ：选择maven，这个是在“系统管理->全局工具配置-Maven”中安装时配置的别名。
 
 目录：maven构建过程命令，例如：
-
-clean install -Dmaven.test.skip=true
 
 clean package -Dmaven.test.skip=true
 
@@ -460,9 +599,13 @@ SSH Server：选择一个已经配置的Publish Over SSH，参见”2.1.2 系统
 
 Source files：传输本地到远程服务器的文件，起始目录为build目录，例如：target/sgw-1.0.1.jar；
 
+```
+构建的文件位置：/home/jenkins/.jenkins/workspace/{jenkins项目名}/target
+```
+
 Remove prefix：传输过去后要去掉前置，例如：target/，传输过去后，只保留sgw-1.0.1.jar；
 
-Remote directory：传输到远程的目录，注意：这个依赖于Publish over SSH配置的Remote Directory起始目录。
+Remote directory：传输到远程的目录，注意：这个依赖于Publish over SSH配置的Remote Directory起始目录，例如:/target。
 
 Exec command：传输文件到远程服务器后，在远程服务器执行的目录，例如：./bin/deploy.sh
 
@@ -512,6 +655,13 @@ Exec command：传输文件到远程服务器后，在远程服务器执行的�
 
 1.8 构建后操作，参见"3.1.7 构建后操作"，参见“Send Build artifacts over SSH"；
 
+```
+Source file: target/xxxx.jar  ,例如:target/dy-config-1.0.1.jar
+Remove prefix: target
+Remote directory: target
+Exec command: ./bin/deploy.sh
+```
+
 例如：发布到tgms用户的$HOME目录下，并调用$HOME/bin/deploy.sh执行发布程序；
 
 Send Build artifacts over SSH配置如下：
@@ -531,60 +681,154 @@ Name:POS-192.168.5.254-TGMS
 Remote Directory:/home/tgms  # 注意本处配置已经限定了以后shell操作的起始目录
 ```
 
-服务器端deploy.sh脚本如下：
+目标服务创建用户，并初始化目录结构：
+
+```bash
+useradd xxx
+su - xxx
+mkdir target
+mkdir bin
+mkdir code_history
+mkdir logs
+cd bin
+```
+
+服务器端**tomcat环境deploy.sh**脚本如下：
 
 ```bash
 #!/bin/bash
+source $HOME/.bashrc
+
+# 变量
+nginx_home=$HOME/nginx
+tomcat_home=$HOME/tomcat
+package_filename=ROOT.war
+package_filepath=$HOME/target/$package_filename
+deploy_dir=$HOME/tgms
+deploy_static_dir=$HOME/tgms_static
 
 # 判断程序包是否存在
-warfile="$HOME/ROOT.war"
-if [ ! -f $warfile ]; then
-  echo $warfile 'does not exist.'
+if [ ! -f $package_filepath ]; then
+  echo $package_filepath 'does not exist.'
   exit 0
 fi
 
 # 停止
-nginx_home=$HOME/nginx
-tomcat_home=$HOME/tomcat
 if [ -f $nginx_home/logs/nginx.pid ]; then
    $nginx_home/sbin/nginx -s stop
 fi
 $tomcat_home/bin/shutdown.sh
 sleep 5s
-PID=$(ps -ef | grep '/home/tgms/jdk1.8/jre/bin/java' | grep -v grep | awk '{ print $2 }')
-if [ -z "$PID" ]
+pid=$(ps aux|grep '/home/tgms/jdk1.8/jre/bin/java'|grep -v "grep"|awk '{print $2}')
+if [ -n "$pid" ]
 then
-    echo 'Application is already stopped'
-else
-    echo 'kill' $PID
+    kill -9 $pid
+    echo 'kill -9' $pid
 fi
 echo 'shutdown ok.'
 
-# 清除
-rm -rf $HOME/tgms
-rm -rf $HOME/tgms_static
-echo clear ok.
-
 # 备份
-cp $HOME/ROOT.war $HOME/code_history/ROOT.war.`date +"%F-%T"`
-echo bak ROOT.war ok.
+cp -r $deploy_dir $HOME/code_history/tgms`date +"%F-%T"`
+echo 'backup ok.'
+
+# 清除
+rm -rf $deploy_dir
+rm -rf $deploy_static_dir
+echo 'clear ok.'
 
 # 发布
-mkdir $HOME/tgms
-cp -r $HOME/ROOT.war $HOME/tgms
-cd $HOME/tgms
-$HOME/jdk1.8/bin/jar xf ROOT.war
+mkdir $deploy_dir
+cp -r $package_filepath $deploy_dir
+cd $deploy_dir
+$JAVA_HOME/bin/jar xf ROOT.war
 rm -rf ROOT.war
-mkdir $HOME/tgms_static
-cp -r $HOME/tgms/* $HOME/tgms_static
-rm -rf $HOME/tgms_static/WEB-INF
-echo deploy ok.
+mkdir $deploy_static_dir
+cp -r $deploy_dir/* $deploy_static_dir
+rm -rf $deploy_static_dir/WEB-INF
+echo 'deploy ok.'
 
 # 启动
 $tomcat_home/bin/startup.sh
 sleep 10s
 $nginx_home/sbin/nginx
-echo startup ok.
+echo 'startup ok.'
+```
+
+spring boot的**jar环境deploy.sh**脚本如下：
+
+**./bin/deploy.sh**
+
+这是一个通用的发布脚本，你只需要修改第一个变量块就可以了：
+
+app_name 应用名
+
+app_version 版本
+
+port 访问端口
+
+profile 指定环境
+
+springboot_props 覆盖的springboot属性，例如：
+
+springboot_props='--spring.cloud.config.server.git.password=xxxx'
+
+```bash
+#!/bin/bash
+
+app_name=dy-config
+app_version=1.0.1
+port=9000
+profile=test
+springboot_props=''
+
+package_filename=$app_name-$app_version.jar
+package_filepath=$HOME/target/$package_filename
+deploy_filepath=$HOME/$package_filename
+
+echo "=============================="
+echo "deploy $package_filename"
+echo "=============================="
+
+# 判断程序包是否存在
+if [ ! -f $package_filepath ]; then
+  echo $package_filepath 'does not exist.'
+  exit 0
+fi
+
+# 关闭系统(先使用kill -15 pid发送关闭通知,如不能正常关闭再使用kill -9 pid强制关闭)
+pid=$(ps aux|grep 'java'|grep $app_name|grep -v "grep"|awk '{print $2}')
+if [ -z "$pid" ]
+then
+    echo 'Application is already stopped'
+else
+    kill -15 $pid
+    echo 'kill -15 '$pid
+fi
+sleep 5
+pid=$(ps aux|grep 'java'|grep $app_name|grep -v "grep"|awk '{print $2}')
+if [ -n "$pid" ]
+then
+    kill -9 $pid
+    echo 'kill -9 '$pid
+fi
+echo 'shutdown ok.'
+
+# 备份
+mv $deploy_filepath $HOME/code_history/$package_filename.`date +"%F-%T"`
+echo 'backup ok.'
+
+# 清理
+rm -rf $deploy_filepath
+echo 'clear ok.'
+
+# 发布
+cp $package_filepath $deploy_filepath
+echo 'deploy ok.'
+
+# 启动系统
+nohup java -Dlogging.loghome=$HOME/logs -Djava.security.egd=file:///dev/urandom -server -Djava.awt.headless=true -Dfile.encoding=UTF-8 -Xmx512m -Xms512m -Xmn200m -XX:MetaspaceSize=128m -XX:MaxMetaspaceSize=128m -XX:+UseParNewGC -XX:+UseConcMarkSweepGC -jar $deploy_filepath --spring.profiles.active=$profile --server.port=$port $springboot_props > $HOME/logs/${app_name}_nohup.log 2>&1 &
+echo 'startup ok.'
+
 
 ```
 
@@ -597,12 +841,16 @@ echo startup ok.
 创建目录"/src/main/docker"，并设置为源码包(Use a Source Folder)，在其下创建Dockerfile文件，例如：
 
 ```dockerfile
-FROM base/java:1.8
+FROM dockerdongyuit.cn:5000/java
+RUN useradd -s /bin/bash 用户名
+USER 用户名
 ADD test-service-1.0.1.jar app.jar
 ENTRYPOINT ["sh","-c","exec java $JAVA_OPTS -jar /app.jar $APP_ENV"]
 ```
 
 FROM 指令指定了基础docker image镜像；
+
+USER 指定了运行的用户; 
 
 ADD 添加target目录下test-service-1.0.1.jar到docker镜像的/app.jar。
 
@@ -642,7 +890,7 @@ Name of image to push(repository/image) ，指定了要发布到docker的docker 
 
 Tag：指定了发布镜像的tag，例如：1.0.2
 
-Docker registry URL：指定了docker 仓库的发布地址，例如：http://dyit.com:2375
+Docker registry URL：指定了docker 仓库的发布地址，例如：tcp://dyit.com:2375
 
 Registry credentials：如果docker仓库访问需要用户名和密码，则需要先创建访问的凭证。
 
@@ -658,12 +906,11 @@ docker服务器端deploy.sh脚本如下：
 
 ```bash
 #!/bin/bash
-# 从docker仓库中拉去新的镜像
-
-# 停止并删除docker镜像
-
-# 启动新的docker镜像
-
-
+$HOME/stop_container.sh dy-config2
+/usr/bin/docker rmi $(docker images dockerdongyuit.cn:5000/dy-config -q)
+docker pull dockerdongyuit.cn:5000/dy-config:1.0.1
+docker run -itd --cap-add=SYS_PTRACE --user dy-config --name dy-config2 --net host -e JAVA_OPTS="-Xms1g -Xmx1g -Xmn300m -XX:+UseParNewGC -XX:+UseConcMarkSweepGC" -e APP_ENV="--spring.profiles.active=proc --spring.cloud.config.server.git.password=xxxxxxx --server.port=8081" dockerdongyuit.cn:5000/dy-config:1.0.1 
+docker logs -f dy-config2
 ```
 
+**注意**：因为docker是基于镜像堆叠，例如：dy-config:1.0.1镜像的FROM镜像是java:1.8，如果你的客户端不存在这个java:1.8镜像，则pull将下载整个dy-config:1.0.1(1.1G)非常耗时。你可以先首次pull下载java:1.8镜像，以后每次在pull下载dy-config:1.0.1，只下载在其上堆叠的dy-config-1.0.1.jar，非常快。

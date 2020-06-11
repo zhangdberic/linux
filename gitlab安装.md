@@ -1,4 +1,6 @@
-# 操作系统方式安装gitlabs
+# gitlabs
+
+## gitlab安装
 
 **安装依赖库和打开http、ssh端口**
 
@@ -14,9 +16,23 @@ systemctl enable postfix.service
 
 **添加GitLab仓库到yum源,并用yum方式安装到服务器上**
 
-curl -sS https://packages.gitlab.com/install/repositories/gitlab/gitlab-ce/script.rpm.sh | sudo bash
+使用国内的镜像
 
- yum install -y gitlab-ce
+vim /etc/yum.repos.d/gitlab-ce.repo
+
+```
+[gitlab-ce]
+name=gitlab-ce
+baseurl=http://mirrors.tuna.tsinghua.edu.cn/gitlab-ce/yum/el7
+repo_gpgcheck=0
+gpgcheck=0
+enabled=1
+gpgkey=https://packages.gitlab.com/gpg.key
+```
+
+yum makecache
+
+yum install -y gitlab-ce
 
 **修改gitlab配置**
 
@@ -35,15 +51,19 @@ gitlab-ctl reconfigure
 
 gitlab-ctl restart
 
+gitlab-ctl tail
+
+**注意：第一次初始化非常慢，30分钟左右，如果还没有初始化完，你发送请求则返回502错误。**
+
+**注意：gitlab的puma需要8080端口，因此8080端要给gitlab留着，不能占用，否则无法启动gitlab。**
+
+gitlab涉及的中间件非常多。
+
 **浏览器，访问http://39.105.202.78:3333**
 
 第一次访问，需要修改root用户的密码。
 
 修改后自动登录了，你应该先sign-out，然后在重新登录一次测试一下root登录是否正常。
-
-**使用sign-up注册用户**
-
-登录页面，就有sign-up，你可以注册用户。
 
 **禁用sign-up**
 
@@ -52,6 +72,54 @@ gitlab-ctl restart
 **创建用户**
 
 有一个**扳手**的图标（Admin Area），点击"Overview->Users"。
+
+## gitlab命令
+
+**监听日志**
+
+gitlab-ctl tail
+
+**查看状态**
+
+gitlab-ctl status
+
+```
+run: alertmanager: (pid 31860) 263s; run: log: (pid 16172) 4116s
+run: gitaly: (pid 31884) 262s; run: log: (pid 15148) 4259s
+run: gitlab-exporter: (pid 31893) 262s; run: log: (pid 16000) 4133s
+run: gitlab-workhorse: (pid 31912) 261s; run: log: (pid 15742) 4155s
+run: grafana: (pid 31930) 261s; run: log: (pid 16461) 4062s
+run: logrotate: (pid 31962) 261s; run: log: (pid 15868) 4144s
+run: nginx: (pid 31968) 260s; run: log: (pid 15776) 4151s
+run: node-exporter: (pid 31983) 260s; run: log: (pid 15920) 4139s
+run: postgres-exporter: (pid 31989) 259s; run: log: (pid 16207) 4110s
+run: postgresql: (pid 32000) 259s; run: log: (pid 15343) 4253s
+run: prometheus: (pid 32091) 258s; run: log: (pid 16063) 4120s
+run: puma: (pid 32112) 258s; run: log: (pid 15680) 4165s
+run: redis: (pid 32118) 257s; run: log: (pid 15057) 4265s
+run: redis-exporter: (pid 32123) 257s; run: log: (pid 16024) 4127s
+run: sidekiq: (pid 32134) 253s; run: log: (pid 15705) 4159s
+```
+
+**重启gitlab**
+
+gitlab-ctl restart
+
+**启动gitlab**
+
+gitlab-ctl start
+
+启动会非常的慢，等吧，10分钟左右。
+
+**停止gitlab**
+
+gitlab-ctl stop
+
+**重新配置(慎用)**
+
+gitlab -reconfigure
+
+
 
 
 
