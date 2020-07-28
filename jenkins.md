@@ -1,5 +1,9 @@
 # jenkins文档
 
+## 阿里镜像
+
+https://developer.aliyun.com/mirror/
+
 ## 1.安装和配置
 
 useradd jenkins
@@ -9,7 +13,7 @@ su - jenkins
 
 下载最新稳定版的jenkins.war
 
-wget http://mirrors.jenkins.io/war-stable/latest/jenkins.war
+wget https://mirrors.aliyun.com/jenkins/war-stable/latest/jenkins.war
 
 把jenkins.war放在tomcat的webapps目录下
 
@@ -67,6 +71,39 @@ sed -i 's/http:\/\/updates.jenkins-ci.org\/download/http:\/\/mirrors.tuna.tsingh
 **jenkins重启一次**
 
 http://192.168.1.250:8080/jenkins/restart
+
+
+
+### 升级
+
+日后如果有新版本了，可以通过如下步骤升级；
+
+**server.xml配置的unpackWARs="true"，否则无法自动解压jenkins.war文件。**
+
+停止tomcat
+
+```
+~/tomcat/bin/shutdown.sh
+```
+
+下载最新的**稳定版本**的jenkins.war
+
+```
+cd ~/soft
+wget https://mirrors.aliyun.com/jenkins/war-stable/latest/jenkins.war
+```
+
+拷贝新的jenkins.war包文件到tomcat/webapps目录下
+
+```
+cp ~/soft/jenkins.war ~/tomcat/webapps/
+```
+
+启动tomcat
+
+```
+./tomcat/bin/startup.sh
+```
 
 
 
@@ -833,6 +870,10 @@ echo 'startup ok.'
 
 
 ```
+
+注意：上面脚本的kill部分，无法正确的识别一个唯一的应用进程，例如：两个用户分别启动了sgw和sgw-manager，那么在sgw-deploy.sh的脚本运行时候就会识别两个pid，在这种情况下，可以根据具体情况，重新修改：pid=$(ps aux|grep 'java'|grep $app_name|grep -v "grep"|awk '{print $2}')，例如：加入$HOME，修改后pid=$(ps aux|grep 'java'|grep $HOME/$app_name|grep -v "grep"|awk '{print $2}')。
+
+
 
 ### 2.docker打包(maven构建 -> docker仓库发布)
 
