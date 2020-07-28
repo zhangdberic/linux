@@ -88,19 +88,7 @@ firewall-cmd --reload
 
 vi /etc/firewalld/zones/public.xml
 
-### curl
-
-#### 计算base64
-
-```
-echo -n "用户名：密码" | base64
-```
-
-#### 发送认证请求
-
-```
-curl -v -H "Authorization: Basic 认证信息" -X GET https://docker.yun.ccb.com/v2/<name>/tags/list
-```
+### 
 
 
 
@@ -158,7 +146,7 @@ systemctl disable xxx
 
 ## 用户
 
-修改用户uid和gid
+### 修改用户uid和gid
 
 例如：
 
@@ -167,6 +155,16 @@ systemctl disable xxx
 ```
 usermod -u 100 test && groupmod -g 101 test
 ```
+
+### 清零失败次数
+
+sgw-manager为用户名
+
+```
+pam_tally2 -u sgw-manager --reset
+```
+
+
 
 ## 进程
 
@@ -230,7 +228,29 @@ curl localhost:3000/api/basic -X POST -d 'hello=world'
 --header "User-Agent:Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.138 Safari/537.36"
 ```
 
+### 上传文件请求
+
+加入-F参数，上传文件 -F "file=@/software/8888.jpg"，这里的/software/8888.jpg为文件路径。如果带上请求参数， -F "purview=2"
+
+```
+curl -F "file=@/software/8888.jpg" -F "purview=2"  -v 'http://10.60.33.18/services?appkey=test&service=dfss.upload&version=1.0&serialnum=4f7bb19b83b94ab2b48fde0d8da624c4&timestamp=1595395828&sign=0CA57636354F65AFC764F592FD0F1A7E41960FB7&format=json&protocol=openapi&resource=0'
+```
+
+
+
 ### 显示请求头和响应头信息
+
+加入-I参数
+
+例如：
+
+```
+curl -I 'http://10.60.33.18:7070/services?appkey=test&service=dfss.get_metadata&version=1.0&serialnum=0a368d56b52f432191475a384442ba7d&timestamp=1595383656&sign=C9312BA00561A22FB8560FB51698282907E703DC&format=json&protocol=openapi&resource=0&id=/dfss/fss1/data/2020/07/22/2O6YRx2R0D4ECTBY4wiwM3632233996.txt'
+```
+
+
+
+### 显示请求和响应详细信息
 
 加入-v参数
 
@@ -240,3 +260,299 @@ curl localhost:3000/api/basic -X POST -d 'hello=world'
 curl localhost:3000/api/basic -X POST -d 'hello=world' -v
 ```
 
+### 计算base64
+
+```
+echo -n "用户名：密码" | base64
+```
+
+### 发送认证请求
+
+```
+curl -v -H "Authorization: Basic 认证信息" -X GET https://docker.yun.ccb.com/v2/<name>/tags/list
+```
+
+### basic认证
+
+```
+
+```
+
+
+
+## grep
+
+查找符合条件表达式(字符串)
+
+```
+grep 'pattern' file.txt
+```
+
+查找不符合条件表达式(字符串) 加入 -v 
+
+```
+grep -v 'pattern' file.txt
+```
+
+高亮显示
+
+你可以在 ~/.bashrc 内加上这行：『alias grep='grep --color=auto'』再以『 source ~/.bashrc 』来立即生效即可喔！ 这样每次运行 grep 他都会自动帮你加上颜色显示啦
+
+## 磁盘
+
+### 系统盘扩容
+
+在没有lvm情况下，为系统盘扩容。
+
+```
+yum install cloud-utils-growpart
+yum install xfsprogs
+```
+
+lsblk 命令，查看当前磁盘容量和已经分配给分区的容量；
+
+df -Th 命令，查看当前系统挂载情况、容量、文件系统类型；
+
+growpart /dev/vda 1 命令，对/dev/vda的第一个分配进行扩容；
+
+如果报错：unexpected output in sfdisk --version [sfdisk，来自 util-linux 2.23.2]，则修改系统字符集：LANG=en_US.UTF-8，然后重新执行这个命令，如果还报错，则locale查看，保证LC_ALL=en_US.UTF-8，如果不是则也要设置这个变量，再重试。
+
+成功提示：CHANGED: partition=1 start=2048 old: size=83883999 end=83886047 new: size=209713119 end=209715167
+
+df -Th 命令，查看当前系统挂载情况、容量、文件系统类型；
+
+根据文件系统扩容：
+
+扩展文件系统。
+
+根据文件系统类型选择以下扩展方式，如何查看文件系统类型请参见步骤。
+
+- ext*文件系统（例如ext3和ext4）：运行
+
+  ```
+  resize2fs <PartitionName>
+  ```
+
+  命令。
+
+  示例命令表示为扩容系统盘的/dev/vda1分区的文件系统。
+
+  ```
+  [root@ecshost ~]# resize2fs /dev/vda1
+  resize2fs 1.42.9 (28-Dec-2013)
+  Filesystem at /dev/vda1 is mounted on /; on-line resizing required
+  old_desc_blocks = 3, new_desc_blocks = 7
+  The filesystem on /dev/vda1 is now 26214139 blocks long.
+  ```
+
+- xfs文件系统：运行
+
+  ```
+  xfs_growfs <mountpoint>
+  ```
+
+  命令。
+
+  示例命令表示为扩容系统盘的/dev/vda1分区的文件系统。其中根目录（/）为/dev/vda1的挂载点。
+
+  ```
+  [root@ecshost ~]# xfs_growfs /
+  meta-data=/dev/vda1              isize=512    agcount=13, agsize=1310656 blks
+           =                       sectsz=512   attr=2, projid32bit=1
+           =                       crc=1        finobt=1, sparse=1, rmapbt=0
+           =                       reflink=1
+  data     =                       bsize=4096   blocks=15728379, imaxpct=25
+           =                       sunit=0      swidth=0 blks
+  naming   =version 2              bsize=4096   ascii-ci=0, ftype=1
+  log      =internal log           bsize=4096   blocks=2560, version=2
+           =                       sectsz=512   sunit=0 blks, lazy-count=1
+  realtime =none                   extsz=4096   blocks=0, rtextents=0
+  data blocks changed from 15728379 to 20971259
+  ```
+
+最好能reboot重启系统，df -Th观察；
+
+## SSH
+
+### 远程登录
+
+```
+ssh -p{ssh_port} {username}@{ip}
+```
+
+例如：
+
+ssh -p10911 sgw-manager@10.60.33.18
+
+## Apache AB
+
+apache ab工具用于压力测试
+
+### 安装
+
+```
+ yum -y install httpd-tools
+```
+
+### 查看请求和响应内容
+
+通常用于在压力测试前，检查URL是否有效，是否可以正常返回期望的内容。
+
+ab -v2 'url'
+
+例如：
+
+```
+ab -v2 'http://10.60.33.18:5500/get_metadata?appkey=test&service=dfss.get_metadata&version=1.0&serialnum=718d2d900b2b48919224ac398d1b7292&timestamp=1595212963&sign=53BFF757350227A28A29790757285D84BF331BD5&format=json&protocol=openapi&resource=0&id=/dfss/fss1/data/2020/07/20/2E9XmlbXDFQc2vOlPrfvO3632233996.txt'
+```
+
+### 压力测试
+
+ab -n请求数量 -c并发数 -k 'url'
+
+参数-k：为保持(keepalive)socket长链接，这个参数对压力测试很重要，没有这个参数则会产生大量的短连接和closed状态连接，但需要http服务器也开启keepalive，spring boot tomcat默认已经已经开启了(keepalive-timeout=60,maxkeepalivedrequest=100)，你可以通过ss -s命令查看。
+
+例如：
+
+```
+ab -n100000 -c100 -k 'http://10.60.33.18:5500/get_metadata?appkey=test&service=dfss.get_metadata&version=1.0&serialnum=718d2d900b2b48919224ac398d1b7292&timestamp=1595212963&sign=53BFF757350227A28A29790757285D84BF331BD5&format=json&protocol=openapi&resource=0&id=/dfss/fss1/data/2020/07/20/2E9XmlbXDFQc2vOlPrfvO3632233996.txt'
+```
+
+**压力测试结果**
+
+```
+Document Length:        70 bytes   # 单个请求返回字节数
+
+Concurrency Level:      100 # 并发数
+Time taken for tests:   5.555 seconds
+Complete requests:      100000 # 完成请求个数
+Failed requests:        0    # 失败请求数
+Write errors:           0
+Keep-Alive requests:    99048  # keepalive请求数(ab -k参数起作用的数量，复用的长链接请求数量)
+Total transferred:      53472392 bytes
+HTML transferred:       7000000 bytes
+Requests per second:    18002.92 [#/sec] (mean)  # 每秒处理的请求数
+Time per request:       5.555 [ms] (mean) # 并发数量内的请求数，例如：100个并发请求数消耗时间
+Time per request:       0.056 [ms] (mean, across all concurrent requests)  # 每个请求消耗的时间
+Transfer rate:          9400.97 [Kbytes/sec] received
+
+Connection Times (ms)
+              min  mean[+/-sd] median   max
+Connect:        0    0   0.1      0       3
+Processing:     1    6   1.6      5      22
+Waiting:        1    6   1.6      5      22
+Total:          1    6   1.6      5      22
+
+Percentage of the requests served within a certain time (ms)
+  50%      5  # 50%的请求在5ms内完成
+  66%      6
+  75%      6
+  80%      6
+  90%      7
+  95%      7
+  98%     11
+  99%     14  # 99%的请求在14ms内完成
+ 100%     22 (longest request)
+
+```
+
+```shell
+
+```
+
+### 错误处理
+
+apr_socket_recv: Connection reset by peer (104)错误
+
+```
+ vim /etc/sysctl.conf 
+ net.ipv4.tcp_syncookies = 0
+ sysctl -p
+```
+
+如果还不行，你可以为ab加入-r参数，这个参数将忽略tcp连接错误。
+
+tomcat对tcp连接的处理能力有限，可以前置nginx，ab请求发送nginx来进行压力测试，测试结果有一定的损耗，但不会太多。
+
+### 上传文件
+
+ab对上传文件的处理比较垃圾，需要前期做什么很多工作。
+
+**1.生成满足rfc1867规范的文件**
+
+创建一个spring boot web项目，创建FirstServlet类，其负责把上传的内容输出到文件中，输出的文件自动满足rfc1867格式。你可以使用postman或者curl来上传一个文件。
+
+```java
+@SpringBootApplication
+@ServletComponentScan
+public class FssApplication {
+
+	public static void main(String[] args) {
+		SpringApplication.run(FssApplication.class, args);
+	}
+	
+}
+
+```
+
+
+
+```java
+@WebServlet(name = "firstServlet", urlPatterns = "/test")
+public class FirstServlet extends HttpServlet {
+
+	private static final long serialVersionUID = 1L;
+
+	@Override
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+		System.out.println(req.getContentType());
+		File outFile = new File("c:/8888.jpg");
+		FileOutputStream output =null;
+		try {
+			output = new FileOutputStream(outFile);
+			int size = copy(req.getInputStream(),output);
+			System.out.println(size);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}finally {
+			try {
+				output.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+	}
+	
+	
+	public static int copy(InputStream in, OutputStream out) throws IOException {
+		Assert.notNull(in, "No InputStream specified");
+		Assert.notNull(out, "No OutputStream specified");
+			int byteCount = 0;
+			byte[] buffer = new byte[1024];
+			int bytesRead = -1;
+			while ((bytesRead = in.read(buffer)) != -1) {
+				out.write(buffer, 0, bytesRead);
+				byteCount += bytesRead;
+			}
+			out.flush();
+			return byteCount;
+	}
+
+}
+```
+
+**ab上传文件**
+
+-T 'multipart/form-data; boundary=--------------------------717331577278210071020116'，必须有，其来至于上面的eclipse的servlet执行输出。
+
+-p 为要上传的文件，这个文件就是上面servlet输出的文件，文件头和尾已经加入了rfc1867格式。
+
+```
+ab -n20000 -c100 -k -T 'multipart/form-data; boundary=--------------------------717331577278210071020116' -p /software/8888.jpg 'http://10.60.33.18/services?appkey=test&service=dfss.upload&version=1.0&serialnum=15ff51d7cbd44dd9a6800f50d293aca8&timestamp=1595403591&sign=407FE2751B12E361D2EFA4838CC5CB0F04CE387B&format=json&protocol=openapi&resource=0'
+```
+
+## yum
+
+yum list installed

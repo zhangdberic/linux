@@ -10,7 +10,7 @@ root用户下安装erlang
 
 yum -y install make gcc gcc-c++ kernel-devel m4 ncurses-devel openssl-devel perl unixODBC unixODBC-devel zip unzip xmlto
 
-**插卡erlang和rabbitmq版本是否匹配**
+**查看erlang和rabbitmq版本是否匹配**
 
 https://www.rabbitmq.com/which-erlang.html
 
