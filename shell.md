@@ -154,3 +154,31 @@ if [ -f $nginx_home/logs/nginx.pid ]; then
 fi
 ```
 
+### 防篡改
+
+#### 生成样板文件
+
+每次代码修改都要重新生成样板文件，例如：你可以在jenkins发布程序后，重新生成样板。
+
+```bash
+find /home/ygjzxfw/tomcat8/webapps ! -name '*.log*' -type f -print0 | xargs -0 md5sum|sort -k 2 > /root/monitor/ygjzxfw_sample.md5
+```
+
+#### 验证文件是否篡改
+
+每隔10分钟允许一次，重新生成为项目的每个文件生成md5和样板文件比较，如果不一样则说被篡改了。
+
+```bash
+#!/bin/sh
+
+find /home/ygjzxfw/tomcat8/webapps ! -name '*.log*' -type f -print0 | xargs -0 md5sum|sort -k 2 > /root/monitor/ygjzxfw.md5
+
+diff /root/monitor/ygjzxfw_sample.md5 /root/monitor/ygjzxfw.md5
+if [[ $? = 0 ]];then
+    echo "ygjzxfw not modified."
+else
+    diff /root/monitor/ygjzxfw_sample.md5 /root/monitor/ygjzxfw.md5 > /root/monitor/ygjzxfw_md5_diff_result.txt
+    cat /root/monitor/ygjzxfw_md5_diff_result.txt | mail -s 在线查询被篡改 909933699@qq.com
+fi
+```
+

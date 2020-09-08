@@ -108,7 +108,7 @@ http {
     include /home/nginx/nginx/conf/denyip.conf;
    
     server {
-        listen       80;
+        listen       {ip}:80;
         server_name	location;
         charset utf-8;
 
@@ -192,11 +192,16 @@ http {
              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
              proxy_http_version 1.1;
              proxy_set_header Connection "";
-             client_body_buffer_size 128k;
-             client_max_body_size 5m;
+             client_body_buffer_size 32k;
+             client_max_body_size 1m;
              proxy_connect_timeout 60s;
              proxy_send_timeout 60s;
              proxy_read_timeout 60s;
+             # 开启压缩
+             gzip on;
+             gzip_min_length 1k;
+             gzip_comp_level 4;
+             gzip_types text/plain text/css application/json application/x-javascript text/xml application/xml application/xml+rss text/javascript application/javascript;   
         }
 
     upstream services {
@@ -368,7 +373,11 @@ deny 192.168.1.200;
 ```nginx
 	# 配置监听的端口
     listen       80;
+    # 配置监听的端口(建议基于ip绑定,安全)
+    listen       127.0.0.1：80;
 ```
+
+
 #### server_name
 
 ```nginx
@@ -499,6 +508,18 @@ location /img/a/b/c/xxx.jpg {
 }
 ```
 
+如果你alias所在的location中加入了表达式()则要要使用如下方法:
+
+```nginx
+location ~ /kybbwssb/(.*)\.(gif|jpg|jpeg|png|bmp|swf|ico)$ {
+             alias /home/kybbwssb/tomcat6/webapps/ROOT/$1.$2;
+             expires 120h;
+        }
+
+```
+
+
+
 ##### proxy_store(代理内容存储)
 
 把proxy_pass请求返回的内容存储到磁盘上，例如：
@@ -531,6 +552,60 @@ allow允许访问的ip和ip段，deny禁止访问的ip和ip段，例如：只允
         }
 ```
 
+##### proxy_buffer_size
+
+```nginx
+proxy_buffer_size 4k;
+```
+
+设置反向代理upstream响应头部大小，一般情况下4K就够用了。如果你自定义了响应头(header)，并且响应头的个数比较多，或者某个响应头大小比较大，则需要调大这个值，应该为4K的倍数。
+
+##### proxy_buffers
+
+```nginx
+proxy_buffers 64 4k;
+```
+
+设置反向代理upstream单个连接的缓冲区大小(num*size)，第一个参数num为缓冲区的个数，第二个参数size为单个缓存区的大小。这里size应该为操作系统一个内存页的大小，通过linux命令：getconf PAGE_SIZE 来获取。
+
+##### proxy_busy_buffers_size
+
+```nginx
+proxy_busy_buffers_size 32k;
+```
+
+设置反向代理upstream缓存区写入多少数据后，把数据推送到最终客户端(例如:浏览器)。反向代理缓存区可以一边从upstream获取数据，一边写入到到最终客户端。例如上面的配置示例32k，表示为每写满32k数据就发送给最终客户端。
+
+##### proxy_temp_file_write_size
+
+```nginx
+proxy_temp_file_write_size 32k;
+```
+
+先阅读上面proxy_busy_buffers_size参数设置说明，本参数和其有关。用于当客户端比较繁忙无法及时获取数据，代理缓冲区堆积满(无法发送给客户端)数据，这是还有继续接受upstream的响应数据，则需要把upstream的响应数据写入到临时文件中，本参数设置每次写入临时文件的数据大小。
+
+##### proxy_temp_path
+
+```nginx
+proxy_temp_path /home/sgw/tmpfs/proxy_temp;
+```
+
+设置反向代理upstream响应数据写入临时文件的目录，这里为了优化可以使用tmpfs文件系统挂载临时文件存储目录。
+
+##### expires
+
+指定文件在客户端浏览器缓存多长时间，例如，图片文件缓存120个小时：
+
+```nginx
+        location ~ /ygjzxfw/.*\.(jpg|png|gif|bmp)$ {
+             root /home/ygjzxfw/tomcat8/webapps;
+             expires 120h;
+        }
+
+```
+
+
+
 ### upstream
 
 #### 反向代理
@@ -555,6 +630,21 @@ weight为权重，所有weight值的总和为一个循环单位，服务器自�
         keepalive 50;
     }
 ```
+
+### gzip
+
+gzip压缩，下面的代码可以放在http、location上。建议放在location上，可以定制压缩配置。默认gzip是关闭的。
+
+```nginx
+gzip  on;
+gzip_min_length 1k;
+gzip_comp_level 4;
+gzip_types text/plain application/javascript application/x-javascript text/css application/xml application/json;
+```
+
+你可以通过浏览器调试，观察是否含有响应头Content-Encoding: gzip
+
+
 
 
 
@@ -792,7 +882,7 @@ cat access_log.2020-07-06.txt | awk '{print $4}'|sort|uniq -c|sort -nr|head -n 1
         }
 
         #拒绝所有以以下结尾的请求
-        location ~* \.(php|asp|ASP|aspx|hp|ashx|zip|rar|gz|sql|tgz|dat|txt|mdb|properties|log|class)$ {
+        location ~* \.(php|asp|ASP|aspx|hp|ashx|zip|rar|gz|sql|tgz|dat|txt|mdb|properties|log|class|vm|conf|java|dbf|bak)$ {
             deny all;
         }
 	}

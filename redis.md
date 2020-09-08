@@ -58,7 +58,6 @@ echo never > /sys/kernel/mm/transparent_hugepage/enabled
 vi ~/redis/redis.conf
 
 ```properties
-protected-mode no # 保护模式设置为no
 bind 127.0.0.1  # 注释bind，则监听0.0.0.0，但有点安全隐患，在keepalived环境必须。
 # bind 127.0.0 本机ip  # 多个ip用空格分隔 127.0.0.1应该使用允许访问
 daemonize yes   # 基于后台允许

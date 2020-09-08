@@ -164,6 +164,26 @@ sgw-manager为用户名
 pam_tally2 -u sgw-manager --reset
 ```
 
+### 修改用户所在的用户组
+
+app为修改后的用户组，web1为要修改的用户，这里理解修改web1的隶属用户组到app，前提这个app的用户组必须存在。
+
+```
+ usermod -g app web1
+```
+
+这里修改了用户所在用户组，如果再新建文件则文件隶属于修改后的用户组(新)。但以前的文件还是修改前的用户组，因此要使用下面的命令来修改：
+
+```
+chgrp -R app /home/web1
+```
+
+/home/web1默认的访问权限drwx------ 只能自身可以访问，如果要组内访问，这要使用下面语句修改为drwxr-x---
+
+```
+chmod 750 /home/web1
+```
+
 
 
 ## 进程
@@ -263,7 +283,7 @@ curl localhost:3000/api/basic -X POST -d 'hello=world' -v
 ### 计算base64
 
 ```
-echo -n "用户名：密码" | base64
+echo -n "用户名:密码" | base64
 ```
 
 ### 发送认证请求
@@ -275,20 +295,20 @@ curl -v -H "Authorization: Basic 认证信息" -X GET https://docker.yun.ccb.com
 ### basic认证
 
 ```
-
+curl -u dy-config:12345678 -X POST http://192.168.5.76:29000/actuator/bus-refresh/sgw
 ```
 
 
 
 ## grep
 
-查找符合条件表达式(字符串)
+查找**符合条件**表达式(字符串)
 
 ```
 grep 'pattern' file.txt
 ```
 
-查找不符合条件表达式(字符串) 加入 -v 
+查找**不符合条件(NOT)**表达式(字符串) 加入 -v 
 
 ```
 grep -v 'pattern' file.txt
@@ -297,6 +317,136 @@ grep -v 'pattern' file.txt
 高亮显示
 
 你可以在 ~/.bashrc 内加上这行：『alias grep='grep --color=auto'』再以『 source ~/.bashrc 』来立即生效即可喔！ 这样每次运行 grep 他都会自动帮你加上颜色显示啦
+
+**OR操作**
+
+符号：
+
+```
+\|
+```
+
+来表示或者，例如：
+
+```
+grep 'appkey=tgms\|appkey=wccy\|appkey=lnbcbzp\|appkey=qybs\|jtbscjx'
+```
+
+**OR和NOT混合使用**
+
+```
+grep -v 'appkey=tgms\|appkey=wccy\|appkey=lnbcbzp\|appkey=qybs\|jtbscjx'
+```
+
+## awk
+
+### awk输出第几列
+
+awk '{print $x}'
+
+例如，输出第4列
+
+```
+awk '{print $4}'
+```
+
+### 指定分隔符
+
+awk默认的分隔符为空格，你可以手工指定分隔符，例如，使用:符号作为分隔符
+
+awk -F ':'
+
+例如：
+
+```
+awk -F ':' '{print $4}'
+```
+
+### 输出固定字符串
+
+在print内输出固定字符串，使用双引号括固定字符串，例如：
+
+```
+awk -F ':' '{print "insert into SERVER(ip,port) values('\''10.60.33.21'\''," $2 ");"}'
+```
+
+如果要输出单引号、双引号则要加入转移字符，例如上面的单因为转移字符。
+
+## find
+
+### 查看目录(递归)下的所有文件名和目录名
+
+例如：
+
+```
+find /home/ygjzxfw/tomcat8/webapps
+```
+
+### 只显示文件名或目录名
+
+```
+find /home/ygjzxfw/tomcat8/webapps -type f
+find /home/ygjzxfw/tomcat8/webapps -type d
+```
+
+### 过滤文件名
+
+例如：
+
+```
+find . -name '*.jpg'
+```
+
+### 过滤文件名或(or)操作
+
+```
+find /home/ygjzxfw/tomcat8/webapps -name '*.jpg' -o -name '*.png'  -type f
+```
+
+### 过滤文件名否定(not)操作
+
+```
+find /home/ygjzxfw/tomcat8/webapps ! -name '*.log*' -type f
+```
+
+### 查找后直接操作文件
+
+例如：查找后直接计算文件的md5值
+
+```
+find /home/ygjzxfw/tomcat8/webapps ! -name '*.log*' -type f -print0 | xargs -0 md5sum
+```
+
+## 发邮件
+
+1.注册一个163.com的邮件。
+
+2.开启POP3/SMTP服务，默认是关闭的，开启后会给你的授权码，这个要留好，下面要用。
+
+3.centos6
+
+yum -y install mail
+
+vi /etc/mail.rc
+
+加入：
+
+```
+set from=dongyuitheige@163.com smtp=smtp.163.com
+set smtp-auth-user=dongyuitheige@163.com smtp-auth-password=授权吗 smtp-auth=login
+```
+
+4.发送邮件
+
+邮件内容 | mail -s 标题 目的地邮箱
+
+例如：
+
+```
+cat /root/monitor/ygjzxfw_md5_diff_result.txt | mail -s 在线查询被篡改 909933699@qq.com
+```
+
+
 
 ## 磁盘
 
@@ -555,4 +705,15 @@ ab -n20000 -c100 -k -T 'multipart/form-data; boundary=--------------------------
 
 ## yum
 
+需要手工输入yes后才安装
+
+yum install xxx
+
+不需要手工确认直接安全
+
+yum -y install xxx
+
+显示已经安装的软件
+
 yum list installed
+
