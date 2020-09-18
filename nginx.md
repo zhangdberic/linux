@@ -18,7 +18,7 @@ tar xvf openssl-1.1.1g.tar.gz
 
 cd nginx-1.18.0
 
-./configure --prefix=/home/nginx/nginx  --user=nginx --group=nginx --with-http_ssl_module --with-openssl=/home/nginx/openssl-1.1.1g/
+./configure --prefix=/home/nginx/nginx  --with-http_stub_status_module --user=nginx --group=nginx --with-http_ssl_module --with-openssl=/home/nginx/openssl-1.1.1g/
 
 make -j4
 
@@ -28,9 +28,7 @@ make install
 
 su - root
 
-chown root /home/nginx/nginx/sbin/nginx
-
-chmod u+s /home/nginx/nginx/sbin/nginx
+setcap cap_net_bind_service=+ep /home/nginx/nginx/sbin/nginx
 
 firewall-cmd --permanent --add-port=80/tcp
 
@@ -39,6 +37,60 @@ firewall-cmd --reload
 su - nginx
 
 ~/nginx/sbin/nginx -t
+
+## 1.3 升级nginx或者添加模块
+
+原理：nginx编辑后，只有一个./nginx/sbin/nginx执行文件，没有其它模块文件，编译时候指定的模块都被编译到./nginx/sbin/nginx这个执行文件中。因此只要替换这个./nginx/sbin/nginx文件就可以实现nginx升级和模块添加。下面举一个例子，添加nginx_status模块。
+
+
+
+按照如下步骤升级和添加模块
+
+**1.保持原nginx目录和文件不动**，如果nginx正在运行则无须停止。
+
+**2.查看原nginx的confgiure运行的配置项**，nginx -V，例如返回：
+
+```
+--prefix=/home/nginx/nginx --user=nginx --group=nginx --with-http_ssl_module --with-openssl=/home/nginx/openssl-1.1.1g/
+```
+
+**3.编译新版的nginx执行文件**，注意：要与原nginx的目录区分开，防止错误覆盖，如下：
+
+http://nginx.org/download/nginx-1.18.0.tar.gz
+tar xvf nginx-1.18.0.tar.gz
+cd nginx-1.18.0
+注意：使用上面的nginx -V的编译配置参数，并加入了--with-http_stub_status_module
+./configure --prefix=/home/nginx/nginx  --with-http_stub_status_module --with-http_realip_module --user=nginx --group=nginx --with-http_ssl_module --with-openssl=/software/openssl-1.1.1g/
+编译，注意：编译后就结束了，不要执行make install，否则就覆盖原nginx了.
+make -j4
+
+**4.替换新的./nginx/sbin/nginx文件**
+
+拷贝新编译的nginx文件到原文件所在的./sbin目录下
+cp ./objs/nginx ~/nginx/sbin/nginx_new
+
+root用户执行net_bind_service
+su - root
+setcap cap_net_bind_service=+ep /home/nginx/nginx/sbin/nginx_new
+
+验证新版的nginx_new是否正确
+su - nginx
+
+~/nginx/sbin/nginx_new -t
+
+关闭原nginx
+
+~/nginx/sbin/nginx -s stop
+
+替换新的nginx
+
+cd ~/nginx/sbin
+
+mv nginx nginx_old
+
+mv nginx_new nginx
+
+./nginx
 
 # 2.nginx.conf
 
@@ -53,7 +105,7 @@ touch /home/nginx/nginx/conf/denyip.conf
 /bin/vi ~/nginx/conf/nginx.conf
 
 ```nginx
-user nginx nginx;
+#user nginx nginx;
 worker_processes  2;
 error_log  logs/error.log  crit;
 worker_rlimit_nofile 60000;
@@ -121,6 +173,16 @@ http {
         location = /50x.html {
             root   html;
         }
+        
+        # nginx状态信息
+        location /status {
+          stub_status on;
+          access_log off;
+          allow 127.0.0.1;
+          deny all;
+        }
+        
+        
         # 反向代理     
         location /services {
              proxy_pass http://services;
@@ -166,6 +228,17 @@ http {
         }
 ```
 
+```nginx
+        location ~ /ygjzxfw/.*\.(gif|jpg|jpeg|png|bmp|swf|ico)$ {
+             root /home/ygjzxfw/tomcat8/webapps;
+             # alias /home/kybbwssb/tomcat6/webapps/ROOT/$1.$2;
+             expires 10d;
+        }
+
+```
+
+
+
 ## 静态文件处理
 
 并设置http响应头缓存12小时，并开启gzip压缩处理。
@@ -180,6 +253,20 @@ http {
            gzip_types text/plain text/css application/json application/x-javascript text/xml application/xml application/xml+rss text/javascript application/javascript;
        }
 ```
+
+```nginx
+        location ~ /ygjzxfw/.*\.(js|css|html|htm)$ {
+             root /home/ygjzxfw/tomcat8/webapps;
+             # alias /home/kybbwssb/tomcat6/webapps/ROOT/$1.$2;
+             expires 12h;
+             gzip  on;
+             gzip_min_length 1k;
+             gzip_comp_level 4;
+             gzip_types text/plain text/css application/json application/x-javascript text/xml application/xml application/xml+rss text/javascript application/javascript;
+       }
+```
+
+
 
 ## 反向代理
 
@@ -197,7 +284,7 @@ http {
              proxy_connect_timeout 60s;
              proxy_send_timeout 60s;
              proxy_read_timeout 60s;
-             # 开启压缩
+             # 开启压缩(客户端是浏览器,应开启)
              gzip on;
              gzip_min_length 1k;
              gzip_comp_level 4;
@@ -375,8 +462,11 @@ deny 192.168.1.200;
     listen       80;
     # 配置监听的端口(建议基于ip绑定,安全)
     listen       127.0.0.1：80;
+    # https监听端口
+    listen       443 ssl;
 ```
 
+注意：ssl端口也是可以修改的，例如：443修改为7443，但修改后有些浏览器是不支持https和非443端口的组合，例如：chrome不支持，火狐支持。
 
 #### server_name
 

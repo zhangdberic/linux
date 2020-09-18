@@ -32,7 +32,54 @@ netstat -nua
 
 ssh -p 22 root@10.60.32.197
 
+### 同一块网多IP地址
+
+**加入另一个ip**
+
+例如：我们要为eth0网卡添加另一个ip地址
+
+cd /etc/sysconfig/network-scripts
+
+cp ifcfg-eth0 ifcfg-eth0:1
+
+vi ifcfg-eth0:1
+
+修改DEVICE=eth0:1
+
+加入ip地址：
+
+IPADDR=10.60.9.160
+NETMASK=255.255.255.192
+
+**验证**
+
+service network restart
+
+ip a 查看是否生效
+
+**添加路由**
+
+例如：为eth0网卡添加路由文件
+
+vi /etc/sysconfig/network-scripts/route-eth0
+
+格式：ip/netmask via getway dev 逻辑网卡名
+
+例如：
+
+```
+10.56.6.0/24 via 10.60.9.129 dev eth0 
+10.60.32.0/24 via 10.60.9.129 dev eth0 
+10.60.33.0/24 via 10.60.9.129 dev eth0
+```
+
+
+
 ### 防火墙(firewalld)
+
+好文章：http://www.bubuko.com/infodetail-2754116.html
+
+或者搜索：centos7 firewall-cmd 理解多区域配置中的 firewalld 防火墙，firewall要写明白比较复杂，我这里复制了网上的一片文章，写的比较好，可以查看firewall.md文档。
 
 #### 基本命令
 
@@ -64,6 +111,46 @@ firewall-cmd --list-all
 
 systemctl enable firewalld
 
+#### 临时修改和永久保留
+
+临时修改，下次重新加载时被覆盖：
+
+firewall-cmd <some modification>
+
+永久保留，下次重新加载后会永久保存：
+
+firewall-cmd --permanent <some modification>
+firewall-cmd --reload
+
+#### 获取定义区域
+
+firewall-cmd --get-zones
+
+```
+block dmz drop external home internal public trusted work
+```
+
+上面返回的这些都是系统默认的区域，正常情况下系统初始化后，就public区域是激活(active)状态。
+
+#### 返回已经被激活(使用)区域
+
+firewall-cmd --get-active-zones
+
+例如:这里返回了两个区域，正常系统默认的就public一个区域，这里返回的区域：
+
+internal为内部区域，为**源区域**定义ip的访问范围。
+
+public为公共区域，接口区域，其它区域的处理不了的都由公共区域来处理，公共区域还解决不了的默认拒绝(reject)。
+
+```
+internal
+  sources: 192.168.5.0/24 10.60.32.198
+public
+  interfaces: eth0
+```
+
+
+
 #### 允许外界访问某个端口
 
 firewall-cmd --permanent --add-port=80/tcp
@@ -88,7 +175,32 @@ firewall-cmd --reload
 
 vi /etc/firewalld/zones/public.xml
 
-### 
+#### 端口转发
+
+firewall-cmd --add-masquerade --permanent
+firewall-cmd --add-forward-port=port=9999:proto=tcp:toaddr=192.168.5.36:toport=9999 --permanent
+firewall-cmd --reload
+firewall-cmd --list-all
+
+或者
+
+vi /etc/firewalld/zones/public.xml
+
+```xml
+  <masquerade/>
+  <!-- forward svn -->
+  <forward-port to-addr="192.168.5.36" to-port="9999" protocol="tcp" port="9999"/>
+```
+
+ 
+
+#### 查看某个用户网络流量
+
+yum install -y nethogs
+
+运行：nethogs
+
+只查看某个网卡：nethogs ethX
 
 
 
@@ -296,6 +408,12 @@ curl -v -H "Authorization: Basic 认证信息" -X GET https://docker.yun.ccb.com
 
 ```
 curl -u dy-config:12345678 -X POST http://192.168.5.76:29000/actuator/bus-refresh/sgw
+```
+
+### HTTPS访问
+
+```
+curl -k --tlsv1 https://www.baidu.com
 ```
 
 
@@ -716,4 +834,42 @@ yum -y install xxx
 显示已经安装的软件
 
 yum list installed
+
+## 打包压缩
+
+### pigz多核压缩
+
+神器，支持多核压缩和解压，基本可以压满CPU，特别适合多CPU、大内存、高IO存储。
+
+gzip和biz2不支持多核pigz完美支持多核。
+
+yum -y install pigz
+
+**压缩**
+
+tar --use-compress-program=pigz -cvpf package.tgz ./package
+
+**解压**
+
+tar --use-compress-program=pigz -xvpf package.tgz -C ./package
+
+### split分隔文件
+
+把一个大文件分隔，特别适合于大文件，窄带宽传输成功率。
+
+split -b 分隔单个文件大小(k,m) 被分隔的大文件 -a 序号位数(例如:-a 3，则分隔后fileaaa,filebbb) 分隔后单个文件名前缀
+
+例如：
+
+split -b 1024m 50g.tgz -a 3 50g
+
+解释：-b 1024m 分隔为大小为1024m的单个文件，50.tgz为这个大文件名，-a 3分隔后文件后置序号为3位(例如：fileaaa,filebbb)，50g分隔后单个文件前缀
+
+**恢复**
+
+使用cat命令把多个文件，合成到一个文件。
+
+cat 50gaa* > 50g.tgz
+
+
 

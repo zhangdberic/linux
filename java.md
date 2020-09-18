@@ -45,6 +45,37 @@ source /etc/profile.d/my_profile.sh
 
 退出shell环境重新登录
 
+### 用户级别有效
+
+su - xxx
+
+cd ~
+
+tar -zxvf jdk-8u261-linux-x64.tar.gz
+
+mv jdk1.8.0_261/ jdk18
+
+vi ~/.bashrc
+
+追加
+
+```bash
+JAVA_HOME=$HOME/jdk18
+export JAVA_HOME 
+
+PATH=$JAVA_HOME/bin:$PATH
+export PATH
+CLASSPATH=.:$JAVA_HOME/lib/dt.jar:$JAVA_HOME/lib/tools.jar
+export CLASSPATH
+
+```
+
+source ~/.bashrc
+
+java -version
+
+
+
 ## maven
 
 ### 系统级别有效

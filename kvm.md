@@ -103,6 +103,9 @@ virsh resume xxx # 恢复挂起的虚拟机
 ### install(安装)
 
 ```
+mkdir -p /vm/iso
+mkdir -p /vm/data
+
 virt-install --name=centos7 --memory=2048,maxmemory=10240 --vcpus=1,maxvcpus=6 --os-type=linux --os-variant=rhel7 --location=/vm/iso/CentOS-7-x86_64-Minimal-2003.iso --disk path=/vm/data/cetnos701.img,size=40 --bridge=br0 --graphics=none --console=pty,target_type=serial --extra-args="console=tty0 console=ttyS0"
 ```
 
@@ -116,7 +119,7 @@ virt-install --name=centos7 --memory=2048,maxmemory=10240 --vcpus=1,maxvcpus=6 -
 
 --location=/vm/iso/CentOS-7-x86_64-Minimal-2003.iso，使用的iso文件位置
 
---disk path=/vm/data/cetnos701.img,size=40 生成的虚拟机文件路径,size=文件大小(G)
+--disk path=/vm/data/centos701.img,size=40 生成的虚拟机文件路径,size=文件大小(G)
 
 --bridge=br0 使用的桥接网卡名
 
@@ -135,6 +138,30 @@ virt-clone --connect qemu:///system --original 原虚拟机名 --name 新虚拟�
 ```
 virt-clone --connect qemu:///system --original centos7 --name middleware --file /vm/data/middleware01.img
 ```
+
+
+
+### 移机虚拟机
+
+**编辑虚拟机配置文件**
+
+拷贝源机的虚拟机配置文件到目标机
+
+虚拟机配置文件位置：/etc/libvirt/qemu/虚拟机名称.xml
+
+注意：一定修改mac地址，虚拟机的mac地址一定不能重复。
+
+```
+<mac address='52:54:00:97:42:ce'/>
+```
+
+**根据配置文件定义虚拟机**
+
+virsh define /etc/libvirt/qemu/虚拟机名称.xml
+
+**验证**
+
+virsh list --all
 
 
 

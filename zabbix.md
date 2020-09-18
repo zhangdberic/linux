@@ -916,6 +916,12 @@ User settings -> 报警媒介 ->添加
 
 
 
+## 监控中间件
+
+### 监控nginx
+
+/usr/share/doc/zabbix-agent-5.0.3/userparameter_mysql.conf
+
 
 
 ## FAQ

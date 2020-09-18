@@ -336,7 +336,8 @@ File path：/home/jenkins/maven/conf/settings.xml
       <username>user</username>
       <password>password</password>
       <host>proxy-ip</host>
-      <port>proxy-port</port>      <nonProxyHosts>localhost|127.0.0.1|10.60.*.*|192.168.*.*|dockerdongyuit.cn</nonProxyHosts>
+      <port>proxy-port</port>      
+      <nonProxyHosts>localhost|127.0.0.1|10.60.*.*|192.168.*.*|dockerdongyuit.cn</nonProxyHosts>
     </proxy>
   </proxies>
 ```
@@ -474,7 +475,7 @@ http://192.168.1.2/jenkins/restart
 
 **Repository URL：**
 
-注意：可以支持svn原生的svn协议；
+注意：可以支持svn原生的svn协议；但需要在操作系统上，先安装svn命令，yum -y install svn
 
 ```
 svn://svn.xxx.cn:9999/zframework/sgw
@@ -582,7 +583,17 @@ Maven版本 ：选择maven，这个是在“系统管理->全局工具配置-Mav
 
 目录：maven构建过程命令，例如：
 
-clean package -Dmaven.test.skip=true
+clean package -Dmaven.test.skip=true -U
+
+解释：
+
+clean为先清理
+
+package为编译打包
+
+-Dmaven.test.skip=true跳过测试
+
+-U为强制更新maven依赖包(-U 是强制检查的意思，-U并不是每次都会拉最新的，只有在时间戳落后于私库上的jar的时候才会下载最新)，其会下载依赖包所在的上级目录内的maven-metadata.xml文件，这个文件包括所有的版本，其会根据dependency的version属性来判断是否要重新获取依赖jar文件。
 
 ##### Execute shell script on remote host using ssh
 
