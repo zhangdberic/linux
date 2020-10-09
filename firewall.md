@@ -140,7 +140,7 @@ firewalld 的设计者认识到大多数的 iptables 使用案例仅涉及到几
 
 1. `# firewall-cmd --permanent --zone=public--remove-service=ssh`
 2. `# firewall-cmd --permanent --zone=public--add-service=http`
-3. `# firewall-cmd --permanent --zone=internal --add-source=1.1.1.1`
+3. `# firewall-cmd --permanent --zone=internal --add-source=1.1.1.1`  # 只要设置源才能激活(active)这个区域
 4. `# firewall-cmd --reload`
 
 这些命令的结果是生成如下的配置：

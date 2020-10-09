@@ -98,9 +98,9 @@ mv nginx_new nginx
 
 cp ~/nginx/conf/nginx.conf ~/nginx/conf/nginx.conf.bak
 
-touch /home/nginx/nginx/conf/allowip.conf
+touch  ~/nginx/conf/allowip.conf
 
-touch /home/nginx/nginx/conf/denyip.conf 
+touch  ~/nginx/conf/denyip.conf 
 
 /bin/vi ~/nginx/conf/nginx.conf
 

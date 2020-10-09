@@ -253,6 +253,14 @@ mv MSYH.TTF graphfont.ttf
 
 进入zabbix主页面->监测->主机->看Zabbix server的可用性项目ZBX是否为绿色。
 
+**如果ZBX不为绿色**，则：
+
+1.查看10050端口(agent)是否存在，netstat -ntlp
+
+2.查看zabbix服务器端的agent是否正常启动，你可以使用systemctl restart zabbix-agent.service，看是否报错。
+
+3.使用命令egrep -v '^$|#' /etc/zabbix/zabbix_agentd.conf，查看zabbix_agentd.conf文件是否存在，并且内容是否正确，参见：客户端zabbix_agent配置，服务器端agent和客户端agent的配置是一样的。
+
 ##### zabbix-get
 
 **安装**
@@ -385,6 +393,20 @@ zabbix_get -s 客户端ip地址 -k system.cpu.num
 
 #### centos6安装
 
+**删除原来的zabbix_agentd版本**
+
+yum remove zabbix-agent -y
+
+yum remove zabbix-sender -y
+
+rpm -e zabbix-release-3.4-1.el6.noarch
+
+rpm -e zabbix-release-3.4-2.el7.noarch
+
+rm -rf /etc/yum.repos.d/zabbix.repo
+
+**安装新版本**
+
 rpm -ivh https://mirrors.aliyun.com/zabbix/zabbix/5.0/rhel/6/x86_64/zabbix-release-5.0-1.el6.noarch.rpm
 
 vi /etc/yum.repos.d/zabbix.repo
@@ -430,7 +452,7 @@ yum -y install zabbix-agent
 
 vi /etc/zabbix/zabbix_agentd.conf 
 
-Server=192.168.65.1 # zabbix server
+Server=192.168.65.1 # zabbix server(起到的作用是限制能访问本agent的服务器ip地址，你可以指定为一个掩码端或0.0.0.0)
 
 #ServerActive=127.0.0.1 # 注释掉
 
@@ -754,6 +776,8 @@ Custom messages：选中
 
 ###### 163mail
 
+注意：先登录163邮箱开启smtp，并获取授权码
+
 名称：163mail
 
 类型：电子邮件(默认)
@@ -781,6 +805,10 @@ SSL验证主机：选中
 点击->添加按钮
 
 ###### qq mail
+
+注意：先登录qq邮箱开启smtp，并获取授权码
+
+其它同上面的163mail
 
 ###### 测试
 
@@ -885,8 +913,26 @@ chown zabbix. /usr/lib/zabbix/alertscripts/weixin.py
 注意：ZhangDongBo为你企业微信用户名的汉子的字母全拼，例如：用户名：张三，则使用ZhangSan。
 
 ```
-python /usr/local/zabbix/alertscripts/weixin.py ZhangDongBo "测试" "人生苦短，我学Python！"
+python /usr/lib/zabbix/alertscripts/weixin.py ZhangDongBo "测试" "人生苦短，我学Python！"
 ```
+
+如果内网环境，则需要进行代理，脚本如下
+
+vi /usr/lib/zabbix/alertscripts/weixin_proxy.sh
+
+```bash
+#!/bin/sh
+export http_proxy="http://proxy_user:proxy_pass@10.60.32.xx:port"
+export https_proxy="http://proxy_user:proxy_pass@10.60.32.xx:port"
+/usr/bin/python /usr/lib/zabbix/alertscripts/weixin.py "$@"
+```
+
+chmod +x /usr/lib/zabbix/alertscripts/weixin_proxy.py
+chown zabbix. /usr/lib/zabbix/alertscripts/weixin_proxy.py 
+
+测试：
+
+/usr/lib/zabbix/alertscripts/weixin_proxy.sh ZhangDongBo 黑哥 牛逼TEXT
 
 ###### zabbix微信警告
 
@@ -896,7 +942,7 @@ python /usr/local/zabbix/alertscripts/weixin.py ZhangDongBo "测试" "人生苦�
 
 类型：脚本
 
-脚本名称：weixin.py
+脚本名称：weixin.py  或者 weixin_proxy.sh
 
 脚本参数：{ALERT.SENDTO}
 
@@ -910,11 +956,15 @@ User settings -> 报警媒介 ->添加
 
 类型：微信
 
-收件人：企业微信的用户名，这里必须是拼音字母全称，首字母大写，其它字母小写，例如：张三，那么收件人填写：ZhangSan
+收件人：企业微信的用户名，这里必须是拼音字母全称，首字母大写，其它字母小写，例如：张三，那么收件人填写：ZhangSan，如果要发给所有的监控人，则需要两步：
+
+1.企业微信端网页登录，应用->zabbix警告机器人->可见范围->加入相关人员。
+
+2.收件人为@all
 
 点击更新
 
-
+测试：关闭一个主机的agent，看是否发生微信警告
 
 ## 监控中间件
 

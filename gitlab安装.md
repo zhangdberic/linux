@@ -119,6 +119,35 @@ gitlab-ctl stop
 
 gitlab -reconfigure
 
+## 修改root密码
+
+ gitlab-rails console 
+
+提示：
+
+```
+--------------------------------------------------------------------------------
+ GitLab:       13.3.5 (467cb4161ad) FOSS
+ GitLab Shell: 13.6.0
+ PostgreSQL:   11.7
+--------------------------------------------------------------------------------
+Loading production environment (Rails 6.0.3.1)
+```
+
+输入如下命令 ，修改root密码：
+
+```
+irb(main):001:0> u=User.where(id:1).first   # u定义为root用户
+=> #<User id:1 @root>
+irb(main):002:0> u.password='12345678'    # 设置root密码, 注意需要符合密码强度
+=> "686831"
+irb(main):003:0> u.password_confirmation='12345678'    # 确认当前密码
+=> "686831"
+irb(main):004:0> u.save!  # 保存操作
+irb(main):009:0> quit #退出
+
+```
+
 
 
 
