@@ -78,6 +78,8 @@ sudo ausearch -i
 
 ## 2 不允许root登录
 
+意义不大，不要做了
+
 admin用户下执行：
 
 sudo vi /etc/passwd

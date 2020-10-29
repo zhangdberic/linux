@@ -871,5 +871,21 @@ split -b 1024m 50g.tgz -a 3 50g
 
 cat 50gaa* > 50g.tgz
 
+## 字体安装
 
+root用户
+
+mkdir -p /usr/share/fonts/win
+
+cd /usr/share/fonts/win
+
+上传字体到当前win目录下
+
+mkfontscale   // 没有则安装，yum -y install mkfontscale
+
+mkfontdir  // 没有则按照，yum -y install mkfontdir
+
+fc-cache -fv  // 没有则按照，yum -y install fontconfig
+
+重启需要使用新字体的应用
 

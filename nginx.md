@@ -1219,19 +1219,45 @@ if ($http_host !~ "(app.lnyg.net|service.lnyg.net)") {
             }
 ```
 
-## 7.FAQ
+## 7.nginx的basic_auth认证
 
-允许nginx命令卡住不动
+yum -y install httpd-tools
+
+su - nginx
+
+cd nginx/conf
+
+htpasswd -c nginx.password 用户名    // 生成密码文件
+
+vi nginx.conf
+
+```nginx
+        location ~ ^/appdown {
+	    root   /home/nginx/down;
+	    auth_basic "Please input user/passwd";
+            auth_basic_user_file /home/nginx/nginx/conf/nginx.password;
+	    autoindex  on; 
+	    add_header Cache-Control no-store;
+        }
+```
+
+
+
+
+
+## FAQ
+
+### 运行nginx命令卡住不动
 
 反向代理配置错误，检查nginx.conf的反向代理配置，重点查看proxy_pass和upstream的配置是否正确。
-
-
-
-## 8.错误处理
 
 ### 403
 
 1.检查nginx.conf的user配置用户和组名是否和要访问的文件隶属用户一样。
+
+## 
+
+
 
 
 
